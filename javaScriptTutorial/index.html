@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <title>JavaScript Tutorial</title>
+    </head>
+    <body>
+        <h1>My First JavaScript!</h1>
+        <p id="demo"></p>
+        <p id="basicScript"></p>
+        <p id="var"></p>
+        <p id="multiplication"></p>
+        <p style="font-size: x-large;color: red;" onmouseover="hover()">Hover Over Me!</p>
+
+        <button type="button" onclick="myFunction()">External File</button>
+        <br>
+        <!--
+        All JavaScript will be written inside script tags. These script tags can be placed either in the body 
+        or in the head sections. If placed under the body section, its recommended to place the script at very bottom.
+        -->
+        <script>
+            // Grabbing an element by its ID and changing its innerHTML aka its text 
+            document.getElementById("demo").innerHTML = "This text was written in javaScript!";     
+
+            /*
+            Writing to the document
+                 document.write("Using document.write" + " " + 5+6);
+
+            You can write an alert to the window which will show a pop up message
+                window.alert("This is an alert message!");
+            You can also just use alert.("message");
+            */
+            
+            // Writting to the console 
+            console.log("This message is for the console");
+            console.log(typeof "Hello");
+
+            // Defining some variables. They are loosely/ dynamically defined meaning that they can
+            // take on various types during runtime.
+            let x, y, z;
+            x = 4; 
+            y = 7;
+            z = (x + y) * 10;
+            document.getElementById("var").innerHTML = "The value of z is " + z;
+            document.getElementById("var").style.color = "red";
+
+            // variables outside of any structure like a class or function are considered
+            // to be in global scope meaning that they can be accessed from anywhere in the program
+            // even across different script tags. var will always be global no matter what 
+            // an redefining it in different blocks still results in referencing the same variable.
+            // This is no the case with let and const variables since they carry block scopes.
+            var global = 1;
+
+            function multiplication(p1, p2)
+            {
+                return p1 * p2;
+            }
+
+            let multi = multiplication(2, 4);
+            document.getElementById("multiplication").innerHTML = multi;
+
+            // A function can be called by an event imbeded inside an html tag
+            function hover()
+            {
+                
+                console.log("Hovers!!!");
+            }
+            
+        </script>
+
+        <script>
+            // Same global as uptop. You would get an error if this was tried with let and const
+            var global = 4;
+            
+            console.log(global);
+        </script>
+
+        <!--javaScripts can be seperated into different files for modularity and ease of use/read-->
+        <script src="basicScript.js"></script>
+
+    </body>
+</html>

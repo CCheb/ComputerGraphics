@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Slot Machines</title>
+        <script>
+            class SlotMachine
+            {
+                constructor(n)
+                {
+                    // First initialize the lastAmmountWon
+                    // a.k.a the winnings for this particular machine,
+                    // the numbers array to hold the random generated nums,
+                    // and the array to hold the photos of each of the numbers
+                    // that are stored within the same directory
+                    this.lastAmountWon = 0;
+                    this.numbers = [];
+                    this.photos = [
+                        "number0.jpg", "number1.jpg", "number2.png",
+                        "number3.png", "number4.jpg", "number5.png",
+                        "number6.png"
+                    ];
+
+                    // After initialization create some elements to help 
+                    // display the slot machine
+
+                    // All elements will be held under a div so that the 
+                    // images will stay on the same line
+                    this.images = document.createElement("div");
+
+                    // Create header displaying the slot machine
+                    // with its designated number (Machine n)
+                    this.h = document.createElement("h2");
+                    this.h.textContent = "Machine " + n;
+
+                    // Each machine will display its individual 
+                    // winnings
+                    this.p = document.createElement("p");
+                    this.p.textContent = "Winnings: 0$";
+                    
+                    // Initialize the imgList to hold three img elements
+                    // along with each of its attributes like src, alt, etc.
+                    this.imgList = [];
+
+                    // Image 1. All images are defaulted to show the number 0
+                    // Its not until the user plays that the images will change 
+                    // and show a result
+                    this.imgList[0] = document.createElement("img");
+                    this.imgList[0].src = "number0.jpg";
+                    this.imgList[0].alt = "0";
+                    this.imgList[0].width = "64";
+                    this.imgList[0].height = "64";
+                    
+                    // Image 2. All images will have a dimmension of
+                    // 64x64 pixels
+                    this.imgList[1] = document.createElement("img");
+                    this.imgList[1].src = "number0.jpg";
+                    this.imgList[1].alt = "0";
+                    this.imgList[1].width = "64";
+                    this.imgList[1].height = "64";
+                    
+                    // Image 3
+                    this.imgList[2] = document.createElement("img");
+                    this.imgList[2].src = "number0.jpg";
+                    this.imgList[2].alt = "0";
+                    this.imgList[2].width = "64";
+                    this.imgList[2].height = "64";
+                    
+                    // Finally, append the elements to the div and
+                    // append the div to the body
+                    this.images.appendChild(this.h);
+                    this.images.appendChild(this.imgList[0]);
+                    this.images.appendChild(this.imgList[1]);
+                    this.images.appendChild(this.imgList[2]);
+                    this.images.appendChild(this.p);
+                    document.body.appendChild(this.images);
+                   
+                }
+
+                play()
+                {
+                    // Generate three random numbers from 0-6 inclusive
+                    // and store them to numbers list
+                    this.numbers[0] = Math.floor(Math.random() * 7);
+                    this.numbers[1] = Math.floor(Math.random() * 7);
+                    this.numbers[2] = Math.floor(Math.random() * 7);
+
+                    // Update the images to the respective numbers as well
+                    // as the alt content
+                    for(let i = 0; i < 3; i++)
+                    {
+                        this.imgList[i].src = this.photos[this.numbers[i]];
+                        this.imgList[i].alt = this.numbers[i];
+                    }
+
+                    // Winnigs logic
+                    // [0,0,0]
+                    if(this.numbers[0] == 0 && this.numbers[1] == 0 && this.numbers[2] == 0)
+                    {
+                        this.lastAmountWon = 14;
+                        this.p.textContent = "Winnings: 14$ (Jackpot!!!)";
+                        
+                    }
+                    // [x,x,x]
+                    else if(this.numbers[0] == this.numbers[1] && this.numbers[1] == this.numbers[2])
+                    {
+                        this.lastAmountWon = 7;
+                        this.p.textContent = "Winnings: 7$";
+                    }
+                    // [0,0,-]
+                    else if(this.numbers[0] == 0 && this.numbers[1] == 0)
+                    {
+                        this.lastAmountWon = 3;
+                        this.p.textContent = "Winnings: 3$";
+                    }
+                    // [x,x,-]
+                    else if(this.numbers[0] == this.numbers[1])
+                    {
+                        this.lastAmountWon = 2;
+                        this.p.textContent = "Winnings: 2$";
+                    }
+                    // [0,-,-]
+                    else if(this.numbers[0] == 0)
+                    {
+                        this.lastAmountWon = 1;
+                        this.p.textContent = "Winnings: 1$";
+                    }
+                    // [-,-,-] none match
+                    else
+                    {
+                        this.lastAmountWon = 0;
+                        this.p.textContent = "Winnings: 0$";
+                    }
+                    
+                    // Return this so that we can use it to calculate
+                    // the total winnings in PlayAll()
+                    return this.lastAmountWon;
+                }
+            }
+
+
+            class Main
+            {
+                constructor(n = 1)
+                {
+                    // First initialize the money and the 
+                    // array to hold n amount of slot machines
+                    this.money = 100;
+                    this.slotMachines = [];
+                    for(let i = 0; i < n; i++)
+                        this.slotMachines[i] = new SlotMachine(i + 1); 
+                    
+                    // After initialization create some elements to display
+                    // in the html page. Note that by creating SlotMachine objects
+                    // more html elements will be created over in that constructor
+                    // In this case it is those elements that will appear first right
+                    // after the main header
+                    this.break = document.createElement("br");
+                    document.body.appendChild(this.break);
+
+                    // p1 shows the total ammount of money left
+                    this.p1 = document.createElement("p");
+                    this.p1.textContent = "Money: " + this.money + "$";
+                    document.body.appendChild(this.p1);
+
+                    // Create a section to display the results after playing
+                    // (winner or game over)
+                    this.result = document.createElement("section");
+                    this.p2 = document.createElement("p");
+                    
+                    // append p2 to result section and append it to the body
+                    this.result.appendChild(this.p2);
+                    document.body.appendChild(this.result);
+                }
+
+                PlayAll()
+                {
+                    // First check if we have enough money to play
+                    if(this.money - 1 >= 0)
+                    {
+                        // If so then subtract 1 from total money
+                        this.money--;
+                        // iterate through each slot machine and call their
+                        // play functions. The pot serves to collect all 
+                        // winnings from the slot machines if any
+                        this.pot = 0;
+                        for(let machine of this.slotMachines)
+                        {
+                            this.pot += machine.play();
+                        } 
+
+                        // If any winnings were made then sum to the total money
+                        // and update the text to show that you won.
+                        if(this.pot > 0)
+                        {
+                            this.money += this.pot;
+                            this.p1.textContent = "Money: " + this.money + "$";
+                            this.p2.textContent = "Winner!";
+
+                        }
+                        // If not then display that you lost
+                        else
+                        {
+                            // We still update money even if we lose
+                            this.p1.textContent = "Money: " + this.money + "$";
+                            this.p2.textContent = "Game Over!";
+                        }
+                    }
+                    // In the case that we ran out of money, you wont be able to play slots
+                    // any further
+                    else
+                    {
+                        this.p2.style.color = "red";
+                        this.p2.textContent = "Out of money!";
+                    }
+               
+
+                }
+            }
+
+            // Global function
+            function onClick()
+            {
+                // Simply call the main class PlayAll function which
+                // will play all n slot machines and calculate the total
+                // winnings if any
+                game.PlayAll();
+            }
+
+        </script>
+    </head>
+    <body>
+        <!--Main header-->
+        <h1 style="color:purple">Slot Machines!</h1>
+       
+        <script>
+            // Our main function. Passing a number to the 
+            // object will generate that same amount of slot
+            // machines
+            let game = new Main(3);
+
+            // Create this button here so that it is a the bottom
+            // of the document and it can reference the global
+            // onClick function
+            let playButton = document.createElement("button");
+            playButton.textContent = "Play";
+            playButton.onclick = onClick;
+
+            document.body.appendChild(playButton);
+        </script>
+    </body>
+
+</html>

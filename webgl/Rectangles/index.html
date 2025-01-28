@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Rectangles!</title>
+
+        <script id="vertex-shader" type="notjs">
+            attribute vec2 a_position;
+            
+            uniform vec2 u_resolution;
+
+            // Using pixel coordinates first and automatically translating them over to
+            // clipspace coordinates
+            void main()
+            {
+                // convert the rectangle from pixels to 0.0 to 1.0
+                vec2 zeroToOne = a_position / u_resolution;
+                           
+                // convert from 0->1 to 0->2
+                vec2 zeroToTwo = zeroToOne * 2.0;
+                           
+                // convert from 0->2 to -1->+1 (clipspace)
+                vec2 clipSpace = zeroToTwo - 1.0;
+                           
+                // Multiply by vec2(1, -1) to flip the y axis to the correct spot
+                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+            }
+
+        </script>
+
+        <script id="fragment-shader" type="notjs">
+            // Set the precision
+            precision mediump float;
+
+            // r, g, a, a
+            uniform vec4  u_color;
+
+            void main()
+            {
+                gl_FragColor = u_color;
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="myCanvas" width="800" height="600">
+            HTML5 not supported
+        </canvas>
+
+        <script src="app.js"> </script>
+    </body>
+</html>

@@ -1,0 +1,43 @@
+BODY
+{
+	background-color: lightblue;
+}
+
+SECTION
+{
+	border-radius: 15 px;
+	background-color: white;
+	padding: 10px;
+	border-radius: 15px;
+}
+ARTICLE
+{
+	border: 2px solid black;
+	border-radius: 15px;
+	padding: 8px;
+}
+HEADER
+{
+	padding: 5px;
+	background-color: purple;
+	color: white;
+	border-radius: 15px;
+}
+Footer
+{
+	padding: 5px;
+	background-color: purple;
+	color:white;
+	border-radius: 15px;
+
+}
+
+H1
+{
+	padding: 3px;
+	color:Purple;
+}
+H2
+{
+	color:#4B0082;
+}

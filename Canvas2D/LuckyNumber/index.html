@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8">
+        <title>Lucky Numbers Game</title>
+        <script>
+            // main class
+            class main
+            {
+                // define the wins, loss, and images variables
+                // image var will be attached to the img tag
+                // in body
+                constructor()
+                {
+                    this.wins = 0;
+                    this.losses = 0;
+                    this.image = document.getElementById("image");
+                }
+
+                playGame()
+                {
+                    // Get two random numbers ranging from 0 - 100
+                    this.firstNum = Math.floor(Math.random() * 101);
+                    this.secondNum = Math.floor(Math.random() * 101);
+
+                    // if second number is greater than first number, its a win
+                    // if not then its a loss. Last case is if both numbers are equal to
+                    // each other. After updating wins or losses, we check which one is greater
+                    // or, as it shows in the last case, if both are even. Each block updates
+                    // the image accordingly. 
+                    (this.secondNum > this.firstNum) ? this.wins++ : this.losses++;
+
+                    if (this.wins > this.losses)
+                    {
+                        document.getElementById("ratio").innerHTML =
+                        "You are winning!";
+                        this.image.src = "smiley.jpg";
+
+                    }
+                    else if (this.wins < this.losses)
+                    {
+                        document.getElementById("ratio").innerHTML =
+                        "You are loosing!";
+                        this.image.src = "sad.jpg";
+                    }
+                    else
+                    {
+                        document.getElementById("ratio").innerHTML =
+                        "Its even!";
+                        this.image.src = "neutral.png";
+
+                    }
+
+                    // Display the result
+                    document.getElementById("results").innerHTML =
+                    "Result " + "(" + this.firstNum + " - " + this.secondNum + ")";
+                   
+                }
+
+            }
+
+            function onClick()
+            {
+                // Call playGame and then display the win/loss ratio
+                // In this case we completly rewrite the <p> tag to display 
+                // the results
+                myMain.playGame();
+                document.getElementById("win").innerHTML =
+                "Wins: " + myMain.wins;
+                document.getElementById("loss").innerHTML =
+                "Losses: " + myMain.losses;
+            }
+        </script>
+
+
+    </head>
+    <body>
+
+        <!--HTML text. Some of the tags like img is connected directly to the class-->
+        <h1 style="color:blueviolet">Lucky Numbers Game!</h1>
+        <img id="image" src="neutral.png" alt="Image showing the emotion after playing the game" width="200" height="200">
+
+        <br>
+        <br>
+
+        <p style="color:red"><b>Note: you win if the second number is greater than the first number</b></p>
+        <!--Game statistics-->
+        <p id="win">Wins: 0</p>
+        <p id="loss">Losses: 0</p>
+        <p id="ratio"></p>
+        <p id="results"></p>
+
+        <!--Button on click will call onClick function which leads to playGame() to be called-->
+        <button type="button" onclick="onClick()">Play!</button>
+        
+        <script>
+            // main object
+            const myMain = new main();
+        </script>
+    </body>
+</html>

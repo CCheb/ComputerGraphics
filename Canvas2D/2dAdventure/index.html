@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>2D Adventure!</title>
+        <script>
+
+            // Parent class for both the hero and the monsters
+            class Character
+            {
+                // constructor helps in initializing variables based on what
+                // the child classes specified
+                constructor(hp, mhp, atk, def, name, pic)
+                {
+                    this.HP = hp;       // Current HP
+                    this.MHP = mhp;     // Max health
+                    this.ATK = atk;     // Attack rating
+                    this.DEF = def;     // Defense rating
+                    this.name  = name;  // character name
+                    
+                    // create a placeholder for the image passed by either
+                    // the hero or any of the three monsters
+                    this.image = document.createElement("img");
+                    this.image.src = pic;
+                    this.DAMAGE = 0;    // Damage variable to hold when calling attack
+
+                    // tile coordinates. These coordinates will be converted over to pixel
+                    // coordinates so as to properly draw the images
+                    this.X;
+                    this.Y;
+                    
+                }
+
+                render()
+                {   
+                    // Start by drawing the image of the 
+                    // character onto the canvas with proper proportions
+                    ctx.drawImage(this.image, this.X * 64, this.Y * 64, 64, 64);
+
+                    // rendering the health bar to be right above the character
+                    ctx.beginPath();
+                    ctx.moveTo((this.X * 64) + 4, (this.Y * 64) + 4);
+                    ctx.lineWidth = 3;
+
+                    
+
+                    // Determining the color of the health bar based on the characters
+                    // health. Also set the line length based on the ammount of health
+                    if(this.HP >= 65 && this.HP <= 100)
+                    {
+                        ctx.strokeStyle = 'green';
+                        ctx.lineTo((this.X * 64) + 60, (this.Y * 64) + 4);
+
+                    }
+                    else if(this.HP >= 45 && this.HP < 65)
+                    {
+                        ctx.strokeStyle = 'darkorange';
+                        ctx.lineTo((this.X * 64) + 30, (this.Y * 64) + 4);
+
+                    }
+                    else if(this.HP >= 0 && this.HP < 45)
+                    {
+                        ctx.strokeStyle = 'red';
+                        ctx.lineTo((this.X * 64) + 15, (this.Y * 64) + 4);
+
+                    }
+
+                    // Finally draw the health bar
+                    ctx.stroke();
+
+                }
+
+                // Attack formula. Pass the object that is going to recieve the damage/attack
+                attacks(other)
+                {
+                    this.DAMAGE = (this.ATK - other.DEF) * (Math.floor(Math.random() * 7) + 1 )
+                    other.HP -= this.DAMAGE;
+
+                    // Display the ammount of damage received and the total health afterwards
+                    console.log(`${this.name} has done ${this.DAMAGE} to ${other.name}`)
+                    console.log(`${other.name}'s health: ${other.HP}`);
+                    // set damage back to 0 so as to not carry over the previous attack damage
+                    this.DAMAGE = 0;
+                }
+            }
+
+            // Simple child class that represents the hero
+            class Hero extends Character
+            {
+                // We simply pass the parameters when creating a hero object
+                constructor(hp, mhp, atk, def, name,  pic)
+                {
+                    super(hp, mhp, atk, def, name,  pic);
+
+                    // This variable helps in determining when to play the
+                    // game over screen. If hero has died then show the gameover screen
+                    this.hasDied = false;
+                }
+            }
+
+            class Monster extends Character
+            {
+                // Monsters will be initiallized based on the passed
+                // level. Levels range from 1(easy) to 3(hard).
+                constructor(lv)
+                {
+                    // The switch statement helps in creating the right monster
+                    // based on the level
+                    switch(lv)
+                    {
+                        case 1:
+                            super(100, 100, 15, 5, "Koopa", "./koopa.png");
+                            break;
+                        case 2:
+                            super(100, 100, 30, 20, "Goomba", "./goomba.png");
+                            break;
+                        case 3:
+                            super(100, 100, 50, 30, "Red Ghost", "./redghost.png");
+                            break;
+                    }
+                }
+
+                
+            }
+
+            class Main
+            {
+                constructor(tCount, pCount, mCount)
+                {
+                    // Creating the static map as a 2d array
+                    // composed of 1s = stones, 2s = trees,
+                    // 4s = potions, and 3 which is reserved for the
+                    // hero spawn
+                    this.rows = canvas.height / 64;
+                    this.columns = canvas.width / 64;
+
+                    // creating the rows
+                    this.staticMap = new Array(this.rows);
+                    // creating the columns
+                    for (let i = 0; i < this.rows; i++) {
+                        this.staticMap[i] = new Array(this.columns);  // Create each row as an array with 'cols' number of elements
+                    }
+
+                    // filling our 2d map with 1's
+                    for(let i = 0; i < this.rows; i++)
+                    {
+                        for(let j = 0; j < this.columns; j++)
+                        {
+                            // if we are in the first or last rows
+                            if(i == 0 || i == this.rows - 1)
+                            {
+                                this.staticMap[i][j] = 1;
+                                
+                            }
+                            // if we are anywhere in between
+                            else
+                            {
+                                // Check the first and last columns
+                                // if on the edge then mark as 1 (stone)
+                                // else mark as 0 (free space)
+                                if(j == 0 || j == this.columns - 1)
+                                {
+                                    this.staticMap[i][j] = 1;
+                                   
+                                }
+                                else
+                                {
+                                    this.staticMap[i][j] = 0;
+                                }
+
+                            }
+
+                        }
+                    }
+
+                    // Assign a spot for our hero 
+                    // in the staticMap
+                    this.staticMap[1][1] = 3;
+                    // adding 6 trees to the map 
+                    this.randLocMap(tCount, 2);
+                    // adding 2 potions to the map
+                    this.randLocMap(pCount, 4);
+
+                    // Initial round of rendering
+                    // We draw the grids, stones, trees, potions, hero
+                    // and monsters once so that the game can be shown
+                    // without needing any initial input
+                    this.drawGrids();
+
+                    for(let i = 0; i < this.rows; i++)
+                    {
+                        for(let j = 0; j < this.columns; j++)
+                        {
+                            if(this.staticMap[i][j] == 1)
+                                this.drawStone(j + 1, i + 1);
+                            else if(this.staticMap[i][j] == 2)
+                                this.drawTree(j + 1, i + 1);
+                            else if(this.staticMap[i][j] == 4)
+                                this.drawPotion(j + 1, i + 1);
+                            
+                        }
+                    }
+
+                    // Hero declaration
+                    this.hero = new Hero(100, 100, 40, 25, "Hero", "./newHero.png");
+                    // Initial positions
+                    this.hero.X = 1;
+                    this.hero.Y = 1;
+                    this.hero.render();
+
+                    // Monster declaration
+                    this.monsters = [];
+
+                    // Create 5 monsters of random levels
+                    for(let i = 0; i < mCount; i++)
+                    {
+                        this.randlv = Math.floor(Math.random() * 3) + 1;
+                        this.monsters[i] = new Monster(this.randlv);
+                        // Assign them a random coordinate
+                        [this.monsters[i].X, this.monsters[i].Y] = this.randLoc();
+                        this.monsters[i].render();
+                    }
+                    
+                    
+                    // Event listener for our hero. It will take keyboard
+                    // input from wasd and the arrow keys. From the imput
+                    // we call the gameLoop and perform the clear, update
+                    // and render cycle
+                    document.addEventListener('keydown', (event) => {
+                        // The idea is to record the keyboard input and send
+                        // it over to the game loop.
+                        this.posX;
+                        this.posY;
+
+                        switch(event.key) {
+                            case 'ArrowUp':
+                            case 'w':
+                                this.posX = 0;
+                                this.posY = -1;
+                                break;
+                            case 'ArrowLeft':
+                            case 'a':
+                                this.posX = -1;
+                                this.posY = 0;
+                                break;
+                            case 'ArrowDown':
+                            case 's':
+                                this.posX = 0;
+                                this.posY = 1;
+                                break;
+                            case 'ArrowRight':
+                            case 'd':
+                                this.posX = 1;
+                                this.posY = 0;
+                                break;
+                            default:
+                                this.posX = null;
+                                this.posY = null;
+                                break;
+                            
+                        }
+
+                        // After recording the game input start the main game loop
+                        if(this.posX != null && this.posY != null)
+                            this.gameLoop(this.posX, this.posY);
+                    });
+
+                   
+                }
+
+                // Once in the game loop we first clear the canvas (screen)
+                // From there we check if the recieved input will trigger a special
+                // event when applied to our hero. Ex: if hero collides with tree,
+                // stone, monster, or potion. After updating the hero, we update the 
+                // movements of the monsters and then render the new map 
+                gameLoop(tileX, tileY)
+                {
+                    // Clear the canvas
+                    ctx.clearRect(0,0, canvas.width, canvas.height);
+
+                    // Update all
+                    this.updateAll(tileX, tileY);
+
+                    // Render all
+                    this.renderAll();
+                    
+                }
+
+                drawGrids()
+                {
+                    // Draw vertical lines
+                    // We can get the exact ammount of lines by dividing the
+                    // width and height of the canvas by 64. This will give us 
+                    // the right ammount of blocks that will be 64x64 in dimmension
+                    for(let j = 1; j < canvas.width / 64; j++)
+                    {
+                        ctx.beginPath();
+                        // always make sure to convert to pixel coordinates
+                        ctx.moveTo(j * 64, 0);  // Starting at the top of the canvas
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = '#000';   // Black
+                        ctx.lineTo(j * 64, canvas.height);
+                        ctx.stroke();
+
+                    }
+
+                    // Draw horizontal lines. Same idea that was applied to vertical
+                    // lines applies here
+                    for(let i = 1; i < canvas.height / 64; i++)
+                    {
+                        ctx.beginPath();
+                        ctx.moveTo(0, i * 64);  // Starting at the left of the canvas
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = '#000';
+                        ctx.lineTo(canvas.width, i * 64);
+                        ctx.stroke();
+
+                    }
+
+                }
+
+                drawStone(tileX, tileY)
+                {
+                    // convert tile coordinates over to pixel and offset
+                    // them so that we can draw the stone in the correct location
+                    ctx.beginPath();
+                    // In this case 64 / 2 = 32 which will place us in the middle
+                    // of the tile
+                    ctx.moveTo((tileX * 64) - 32, (tileY * 64) - 32);
+                    ctx.strokeStyle = "#eb8334";    //Brown-ish
+                    ctx.lineWidth = 3;
+                    ctx.lineTo((tileX * 64) - 32, ((tileY * 64) - 32) + 20);
+                    ctx.stroke();
+                }
+
+                drawTree(tileX, tileY)
+                {
+                    // convert tile coordinates over to pixel and offset
+                    // them so that we can draw the stone in the correct location
+                    // Same idea as with the drawStone()
+                    ctx.beginPath();
+                    ctx.moveTo((tileX * 64) - 32, (tileY * 64) - 32);
+                    ctx.strokeStyle = "#F00";    //red
+                    ctx.lineWidth = 3;
+                    ctx.lineTo((tileX * 64) - 32, ((tileY * 64) - 32) + 20);
+                    ctx.stroke();
+
+                }
+
+                drawPotion(tileX, tileY)
+                {
+                    // convert tile coordinates over to pixel and offset
+                    // them so that we can draw the stone in the correct location
+                    ctx.beginPath();
+                    //ctx.moveTo((tileX * 64) - 32, (tileY * 64) - 32);
+                    ctx.strokeStyle = "#00F";    //red
+                    ctx.arc((tileX * 64) - 32, (tileY * 64) - 32 , 5, 0, Math.PI*2, false);//360 degrees
+                    ctx.stroke();
+
+                }
+
+                // Function for generating a valid random location
+                // For trees and for potions. Pass the amount as well
+                // as the id number to mark on the map
+                randLocMap(n, id)
+                {
+                    // We want to generate n trees or potions
+                    for(let i = 0; i < n; i++)
+                    {
+                        // for each we find a suitable random coordinate for it
+                        // if the first round doenst work then we repeat until we find 
+                        // a suitable random number
+                        this.isLocFound = false;
+                        while(this.isLocFound == false)
+                        {
+                            // finding valid random coordinates 
+                            // Inner number is inclusive when + 1 is on the outside
+                            this.randX = Math.floor(Math.random() * (this.staticMap[0].length - 1)) + 1;
+                            this.randY = Math.floor(Math.random() * (this.staticMap.length - 1)) + 1;
+
+                            // check to see if above coordinates are valid, i.e, they land on a 0
+                            // any other number is either a stone(1), another tree (2), the hero(3), 
+                            // or a potion(4)
+                            if(this.staticMap[this.randY][this.randX] == 0)
+                                this.isLocFound = true;
+                        }
+
+                        // and once found we update the static map and draw the tree
+                        this.staticMap[this.randY][this.randX] = id;
+                       
+                    }
+                }
+
+                randLoc()
+                {
+                    this.isLocFound = false;
+                    while(this.isLocFound == false)
+                    {
+                        // finding valid random coordinates
+                        this.randX = Math.floor(Math.random() * (this.staticMap[0].length - 1)) + 1;
+                        this.randY = Math.floor(Math.random() * (this.staticMap.length - 1)) + 1;
+                        
+                        // Check if the generated coordinates land on a free space
+                        if(this.staticMap[this.randY][this.randX] == 0)
+                        {   
+                            // If there is free space we still need to still check for any monsters
+                            // occupying that area. We check by checking their current coordinates
+                            // against the random ones. The flag tells when to stop this loop 
+                            this.flag = false;
+                            for(let i = 0; i < this.monsters.length; i++)
+                            {
+                                if(this.randX == this.monsters[i].X && this.randY == this.monsters[i].Y)
+                                {
+                                    this.flag = true;
+                                    break;
+                                }
+
+                            }
+                            
+                            // After looping we check if the flag is false
+                            // indicating that the rand points are valid!
+                            // We then end the while loop by making isLocFound
+                            // to true
+                            if(this.flag == false)
+                                this.isLocFound = true;
+                        }
+                    }
+
+                    // After finding valid locations we pass them back to the
+                    // monster
+                    return [this.randX, this.randY];
+                   
+
+                }
+
+                // Function is split into two sections: updating the hero and updating the monsters
+                // since those are the only two objects that move in the game
+                updateAll(tileX, tileY)
+                {
+                    // first update the hero's movement
+                    this.newX = this.hero.X + tileX;
+                    this.newY = this.hero.Y + tileY;
+
+                    // Checking for any free space in which the hero can walk into. In this case its either
+                    // 0 (free space), 3 (initial hero's position), 4 (potions)
+                    if(this.staticMap[this.newY][this.newX] == 0 || this.staticMap[this.newY][this.newX] == 3
+                        || this.staticMap[this.newY][this.newX] == 4
+                    )
+                    {
+                        // Flag for checking if monster contact has been made
+                        this.contact = false;
+
+                        // checking for monsters to attack
+                        // Loop through each monster and check if the new coordinates
+                        // match with any of the monsters coordinates. Is so, make the hero
+                        // attack that monster and kill it if its health is <= 0
+                        for(let i = 0; i < this.monsters.length; i++)
+                        {
+                            if(this.newX == this.monsters[i].X && this.newY == this.monsters[i].Y)
+                            {
+                                this.hero.attacks(this.monsters[i]);
+                                if(this.monsters[i].HP <= 0)
+                                    this.monsters.splice(i, 1);
+
+                                // Set flag to true since contact has been made and break from the loop
+                                // since the hero can only attack one monster per turn
+                                this.contact = true;
+                                break;
+                            }
+                        }
+
+                        // Check if the flag is false which signifies that the hero hasnt
+                        // encountered any monsters
+                        if(this.contact == false)
+                        {   
+                            // Special case for the potion 
+                            if(this.staticMap[this.newY][this.newX] == 4)
+                            {
+                                this.staticMap[this.newY][this.newX] = 0;
+                                this.hero.HP += 30;
+                                console.log(`Hero's health: ${this.hero.HP}`)
+
+                            }
+
+                            // Finally update the heros position
+                            this.hero.X = this.newX;
+                            this.hero.Y = this.newY;
+                        }
+
+                        
+                    }
+                    
+
+                    // Now update monsters. Similar approach to hero's movement
+                    for(let i = 0; i < this.monsters.length; i++)
+                    {
+                        // Generate random input for the monster
+                        this.direction = Math.floor(Math.random() * 4);
+
+                        this.monstPosX = 0;
+                        this.monstPosY = 0;
+
+                        switch(this.direction)
+                        {
+                            case 0:
+                                this.monstPosX = 0;
+                                this.monstPosY = -1;
+                                break;
+                            case 1:
+                                this.monstPosX = -1;
+                                this.monstPosY = 0;
+                                break;
+                            case 2:
+                                this.monstPosX = 1;
+                                this.monstPosY = 0;
+                                break;
+                            case 3:
+                                this.monstPosX = 0;
+                                this.monstPosY = 1;
+                                break;
+                        }
+
+                        
+                        // Record this potential input and test it on the static map for free space
+                        this.monstPosX += this.monsters[i].X;
+                        this.monstPosY += this.monsters[i].Y;
+                       
+                        if(this.staticMap[this.monstPosY][this.monstPosX] == 0 || this.staticMap[this.monstPosY][this.monstPosX] == 3)
+                        {
+                            // If there is free space. Check to see if the hero is in that same position
+                            this.monstContact = false;
+                            if(this.monstPosX == this.hero.X && this.monstPosY == this.hero.Y)
+                            {
+                                this.monsters[i].attacks(this.hero);
+
+                                if(this.hero.HP <= 0)
+                                    this.hero.hasDied = true;
+
+                                this.monstContact = true;
+                            }
+                            // If the hero is not encountered in that position we still need to check if there is another
+                            // monsters in that same spot
+                            else  
+                            {
+                                for(let j = 0; j < this.monsters.length; j++)
+                                {
+                                    if(this.monstPosX == this.monsters[j].X && this.monstPosY == this.monsters[j].Y)
+                                    {
+                                        console.log("Monster Collision");
+                                        this.monstContact = true;
+                                        //break;
+                                    }
+
+                                }
+                            }
+
+                            // Check if the flag is false signifying that the monster did not encountered
+                            // neither the hero nor another monster. Thus we can declare that these random
+                            // input coordinates contain only a free space
+                            if(this.monstContact == false)
+                            {
+                                this.monsters[i].X = this.monstPosX;
+                                this.monsters[i].Y = this.monstPosY;
+                            }
+                        }
+                    }
+                    
+                }
+
+                renderAll()
+                {
+                    // First render the grids
+                    this.drawGrids();
+
+                    // Then the stones trees and potions. We do this by
+                    // looping through the static map and check if a particular
+                    // index is a 1, 2, or 4
+                    for(let i = 0; i < this.rows; i++)
+                    {
+                        for(let j = 0; j < this.columns; j++)
+                        {
+                            if(this.staticMap[i][j] == 1)
+                                this.drawStone(j + 1, i + 1);
+                            else if(this.staticMap[i][j] == 2)
+                                this.drawTree(j + 1, i + 1);
+                            else if(this.staticMap[i][j] == 4)
+                                this.drawPotion(j + 1, i + 1);
+                            
+                        }
+                    }
+
+                    // After rendering the base map render the victory or
+                    // gameover screens if the conditions are true or generated the
+                    // hero and monsters
+
+                    // If there are no more monsters, then victory is achieved!
+                    if(this.monsters.length == 0)
+                    {
+                        this.win();
+                    }
+                    // If hero's health has dropped to 0 or below then he is marked as
+                    // dead and the game is lost
+                    else if(this.hero.hasDied == true)
+                    {
+                        this.gameOver();
+                    }
+                    else
+                    {
+                        this.hero.render()
+                        for(let i = 0; i < this.monsters.length; i++)
+                            this.monsters[i].render();
+                    }
+                }
+
+                // render victory screen 
+                win()
+                {
+                    ctx.beginPath()
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(64, 64, (this.columns - 2) * 64, (this.rows - 2) * 64);
+
+                    ctx.font = "100px Arial";
+                    ctx.fillStyle = "black";
+                    ctx.fillText("Victory!", Math.floor(((this.columns - 2) * 64) / 4), Math.floor((this.columns - 2) * 64 / 2));
+                }
+
+                // render gameover screen
+                gameOver()
+                {
+                    ctx.beginPath()
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(64, 64, (this.columns - 2) * 64, (this.rows - 2) * 64);
+
+                    ctx.font = "100px Arial";
+                    ctx.fillStyle = "black";
+                    ctx.fillText("Dead!", ((this.columns - 2) * 64) / 4, ((this.columns - 2) * 64) / 2);
+                }
+
+            }
+
+        
+        </script>
+    </head>
+    <body>
+        <h1 style="color: blueviolet;">2D Adventure!</h1>
+        <canvas id="myCanvas">
+            Canvas not supported    
+        </canvas>
+
+        <!--Buttons for refreshing the screen and changing the canvas size-->
+        <div>
+            <button onclick="onClick(512, 320, 2, 1, 2)">Small</button>
+            <button onclick="onClick(704, 448, 5, 3, 5)">Medium</button>
+            <button onclick="onClick(896, 640, 8, 3, 8)">Large</button>
+        </div>
+        <script>
+
+            // Declare both the canvas and ctx but the canvas is not
+            // initialized until later. Its important to keep them global
+            // since that is what the main class expects
+            var canvas = document.getElementById("myCanvas");
+            var ctx = canvas.getContext("2d");
+
+            // Declare the tree, potion, and monster counts that
+            // will be passed over to the main class. The idea is that
+            // clicking a button will not only change the canvas size but
+            // also set the approproate counts of objects for that size
+            let tCount;
+            let pCount;
+            let mCount;
+            
+            // onClick gets called by the buttons. It will save
+            // the previous variables in localStorage which allows
+            // them to be accessed even after refreshing the screen.
+            function onClick(width, height, t, p, m)
+            {
+                const newWidth = width;
+                const newHeight = height;
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+
+                const newT = t;
+                const newP = p;
+                const newM = m;
+
+                localStorage.setItem('canvasWidth', newWidth);
+                localStorage.setItem('canvasHeight', newHeight);
+                localStorage.setItem('treeCount', newT);
+                localStorage.setItem('potionCount', newP);
+                localStorage.setItem('monsterCount', newM);
+
+                location.reload();
+            }
+
+            // onReload will be the first function called when the window
+            // refreshes. It will try to retrieve the information in the 
+            // local storage and will set them to the appropriate variables
+            // If localStorage is empty then set them to the default values
+            // which is the medium size
+            function onReload()
+            {
+        
+                const savedWidth = localStorage.getItem('canvasWidth');
+                const savedHeight = localStorage.getItem('canvasHeight');
+                const sTree = localStorage.getItem('treeCount');
+                const sPotion = localStorage.getItem('potionCount');
+                const sMonsters = localStorage.getItem('monsterCount');
+                
+                
+                if(savedWidth && savedHeight && sTree && sPotion && sMonsters)
+                {
+                    canvas.width = savedWidth;
+                    canvas.height = savedHeight;
+                    tCount = sTree;
+                    pCount = sPotion;
+                    mCount = sMonsters;
+
+                }
+                else
+                {
+                    canvas.width = 704;
+                    canvas.height = 448;
+                    tCount = 5;
+                    pCount = 2;
+                    mCount = 5;
+                }
+
+            }
+            
+            window.onload = onReload();
+
+            // After everything we call the main class and the
+            // game will start.
+            myMain = new Main(tCount, pCount, mCount);
+        </script>
+    </body>
+</html>
