@@ -1,0 +1,1 @@
+This repository is mean't to store my computer graphics related work in a place I can access in both my desktop and mac. I will continuosly add to this repo as the assignments and examples start rolling in!
