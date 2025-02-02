@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>"Triangle Trouble!"</title>
+        <script id="2dVertexShader" type="notjs">
+            // Define vertex shader
+
+            // Define our attributes that will read from the same
+            // buffer
+            attribute vec4 a_position;
+			attribute vec3 a_color;
+
+			// can talk with fragment shader
+			varying vec3 v_color;
+			void main()
+			{	
+				v_color = a_color;
+				gl_Position = a_position;
+			}		
+        </script>
+
+        <script id="2dFragmentShader" type="notjs"> 
+            //Fragment shaders do not have precision so we have to set it.
+			precision mediump float;
+			// This is our fragment shader which sets pixels to the right colors 
+			// based on what the rasterizer sent in. The flow is:
+			// vertex shader -> rasterizer -> fragment shader.
+			// Note that the vertex shader is called once per each vertex, the fragment
+			// shader is called for each pixel it has to color!
+
+			// Same as the v_color from the vertex shader
+			varying vec3 v_color;
+			void main()
+			{
+				gl_FragColor = vec4(v_color, 1); //between 0 and 1 
+			}
+        </script>
+
+
+        <script>
+
+            class InitWebGLProgram
+            {
+                constructor()
+                {
+                    // Set our viewport to match the canvas size
+                    gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
+
+                    // Set our first clear so that everything is clean. Set our
+                    // background color as well. Later we will clear the screen
+                    // when the user presses a button
+                    gl.clearColor(1,1,1,1);     // White background
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                }
+
+                createShader(type, source)
+                {
+                    // type = shader variable (e.g. vertexShader or fragmentShader)
+					// source = text/source code (e.g. vertexShaderSource)
+					var shader = gl.createShader(type);
+					gl.shaderSource(shader,source);
+
+					// After linking our shader and source together, we can then compile them
+					// Similar process to the C/C++ compile process
+					gl.compileShader(shader);
+					// Always make sure to do some error checking since webgl doesnt like
+					// to talk about them automatically :)
+					var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
+					if(success){
+						// If everything goes well, return the compiled shader so that it can be
+						// linked later
+						return shader;
+					}
+					//else if didnt work
+					console.error(gl.getShaderInfoLog(shader));
+					gl.deleteShader(shader);
+                }
+
+                createProgram(vs, fs)
+                {
+                   // vs = vertex shader; fs = fragment shader
+					// create the program variable
+					var program = gl.createProgram();
+					// attaching both shaders to the program and linking them together 
+					gl.attachShader(program, vs);
+					gl.attachShader(program, fs);
+					gl.linkProgram(program);
+					// Always make sure to do some error checking 
+					var success = gl.getProgramParameter(program,gl.LINK_STATUS);
+					if(success){
+						// if everything goes then return the complete program
+						return program;
+					}
+					console.error(gl.getProgramInfoLog(program));
+					gl.deleteProgram(program);
+                }
+
+            }
+
+            class Shape
+            {
+                constructor()
+                {
+                    // Here we initialize and set up the buffer
+
+                    // First start by specifing vertex positions and their colors
+                    // Colors are set to random so that they change everytime the
+                    // screen is refreshed
+                    var positions = 
+                    [
+                    //   X        Y       R              G              B
+                         0.0,     0.5,    Math.random(), Math.random(), Math.random(),
+                         1.0,     0.5,    Math.random(), Math.random(), Math.random(),
+                         0.5,     1.0,    Math.random(), Math.random(), Math.random(),
+                         0.5,     0.0,    Math.random(), Math.random(), Math.random(),
+                         0.0,    -1.0,    Math.random(), Math.random(), Math.random(),
+                        -0.5,     0.0,    Math.random(), Math.random(), Math.random()
+
+                    ];
+
+                    // Create our buffer that will hold positions. Then bind it to the global
+                    // bind point so that webgl can know that it exists
+                    this.positionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+                    // Finally connect the array to the buffer! Make sure to convert over to
+                    // 32-bit representation
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+                }
+
+              
+            }
+
+            class Main
+            {
+                constructor()
+                {
+                    // Initialize our webGL program
+                    this.webGL = new InitWebGLProgram();
+
+                    // After setting our background and viewport, we now need to compile and
+					// create our 'program' which really is just compiling and linking our
+					// our vertex and fragment shader
+
+					// We first make sure to grab a reference to the shader source code
+					var vertexShaderSource = document.getElementById("2dVertexShader").text;
+					var fragmentShaderSource = document.getElementById("2dFragmentShader").text;
+
+					// grabbing our compiled shaders through the createShader function
+					var vertexShader = this.webGL.createShader(gl.VERTEX_SHADER, vertexShaderSource);
+					var fragmentShader = this.webGL.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+					
+					//link to program //this.program needs to be a class variable for access
+					// The program takes both compiled shaders and links them together into a 
+					// 'program' It is possible to have more than one program in a webgl application
+					// each having their own vertex and fragment shaders
+					this.program = this.webGL.createProgram(vertexShader, fragmentShader);
+
+					//what program to use
+					// Anything before the useProgram function is considered to be initiallization
+					// code. Most of webgl is setting up shop/state. There is little code when it comes to
+					// rendering 
+					gl.useProgram(this.program);
+
+					// After creating, binding, and giving our buffer some data we can now render the shape!
+					var temp = new Shape();
+                }
+
+                render(selection)
+                {
+                    // First set our screen and clear it
+                    gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                    var positionLocation = gl.getAttribLocation(this.program, "a_position");
+                    var colorLocation = gl.getAttribLocation(this.program, "a_color");
+                    // Enable our attributes and tell them how to read the buffer
+                    gl.enableVertexAttribArray(positionLocation);
+                    gl.enableVertexAttribArray(colorLocation);
+
+                    // Format our position attribute
+                    gl.vertexAttribPointer
+                    (
+                        positionLocation,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        5 * Float32Array.BYTES_PER_ELEMENT,
+                        0
+
+                    );
+
+                    // Format our color attribute
+                    gl.vertexAttribPointer
+                    (
+                        colorLocation,
+                        3,
+                        gl.FLOAT,
+                        false,
+                        5 * Float32Array.BYTES_PER_ELEMENT,
+                        2 * Float32Array.BYTES_PER_ELEMENT
+                    );
+                    
+                    // Based on the selection (0, 1, 2) assign
+                    // primitiveType the correct assignment
+                    var primitiveType;
+                    switch(selection)
+                    {
+                        case 0:
+                            primitiveType = gl.TRIANGLES;
+                            break;
+                        case 1:
+                            primitiveType = gl.TRIANGLE_STRIP;
+                            break;
+                        case 2:
+                            primitiveType = gl.TRIANGLE_FAN;
+                            break;
+                        
+                    };
+
+					var offset = 0;
+					var count = 6;
+					// last thing we should do in a webgl program
+					gl.drawArrays(primitiveType, offset, count);
+
+                }
+            }
+
+            // Global function for executing the main render
+            function triangleTrouble(selection=0)
+            {   
+                // take the input from the button and pass it to the render function
+                myMain.render(selection);
+            }
+        </script>
+    </head>
+    <body>
+        <h1 style="color:blueviolet">Triangle Trouble!</h1>
+
+        <canvas id="myCanvas" width="640" height="400">
+            This browser doesnt support canvas
+        </canvas>
+
+        <!--Set up three buttons so that when one is pressed webgl will draw a different primitive-->
+        <p style="color:red"><b>Note: program defaults to gl.TRIANGLES when no button is pressed</b></p>
+        <div>
+            <button type="button" onclick="triangleTrouble(0)">gl.TRIANGLES</button>
+            <button type="button" onclick="triangleTrouble(1)">gl.TRIANGLE_STRIP</button>
+            <button type="button" onclick="triangleTrouble(2)">gl.TRIANGLE_FAN</button>
+        </div>
+
+        <script>
+            // Driver code
+            var canvas = document.getElementById("myCanvas");
+            var gl = canvas.getContext("webgl");
+
+            var myMain = new Main();
+
+            // Call triangleTrouble once so that the triangle can render when the page first
+            // loads up
+            triangleTrouble();
+        </script>
+    </body>
+</html>
