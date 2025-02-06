@@ -1,0 +1,68 @@
+<!--Connect the css sheet-->
+<head>
+    <link rel="stylesheet" href="stylesheet.css">
+</head>
+
+
+<canvas id="canvas"></canvas>
+<div id="uiContainer">
+  <div id="ui">
+    <div id="x"></div>
+    <div id="y"></div>
+  </div>
+</div>
+<!-- vertex shader -->
+<script  id="vertex-shader-2d" type="x-shader/x-vertex">
+attribute vec2 a_position;
+
+uniform vec2 u_resolution;
+uniform vec2 u_translation;
+
+void main() {
+   // Add in the translation. The key is that instead of
+   // constatly rebuffering the position buffer, lets instead
+   // update all of the verticies here in the vertex shader where
+   // all of the math is done on the gpu side instead of the cpu.
+
+   // both a_position and u_translation are vec2 so the math is done
+   // automatically thanks to glsl
+   vec2 position = a_position + u_translation;
+
+   // Once we obtain the new position we convert from pixels to clipspace
+   // convert the position from pixels to 0.0 to 1.0
+   vec2 zeroToOne = position / u_resolution;
+
+   // convert from 0->1 to 0->2
+   vec2 zeroToTwo = zeroToOne * 2.0;
+
+   // convert from 0->2 to -1->+1 (clipspace)
+   vec2 clipSpace = zeroToTwo - 1.0;
+
+   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+}
+</script>
+<!-- fragment shader -->
+<script  id="fragment-shader-2d" type="x-shader/x-fragment">
+precision mediump float;
+
+// Everytime we resfresh we will see different solid colors thanks to u_color
+uniform vec4 u_color;
+
+void main() {
+   gl_FragColor = u_color;
+}
+</script><!--
+for most samples webgl-utils only provides shader compiling/linking and
+canvas resizing because why clutter the examples with code that's the same in every sample.
+See https://webglfundamentals.org/webgl/lessons/webgl-boilerplate.html
+and https://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+for webgl-utils, m3, m4, and webgl-lessons-ui.
+-->
+
+<!--The first two are boiler plate source files that provide and easy way to create a
+    shader program and set up a nice slider ui-->
+<script src="../BoilerPlate/webgl-utils.js"></script>
+<script src="../BoilerPlate/webgl-lessons-ui.js"></script>
+
+<!--Connect the source code-->
+<script src="app.js"></script>

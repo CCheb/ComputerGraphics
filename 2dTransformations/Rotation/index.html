@@ -1,0 +1,68 @@
+<head>
+    <link rel="stylesheet" href="stylesheet.css">
+</head>
+
+<canvas id="canvas"></canvas>
+<div id="uiContainer">
+  <div id="ui">
+    <div id="x"></div>
+    <div id="y"></div>
+    <div id="angle"></div>
+  </div>
+</div>
+<!-- vertex shader -->
+<script  id="vertex-shader-2d" type="x-shader/x-vertex">
+attribute vec2 a_position;
+
+uniform vec2 u_resolution;
+uniform vec2 u_translation;
+uniform vec2 u_rotation;
+
+void main() {
+  // Rotate the position
+  // Now along with having translation, we now have rotation. We implement this similarly
+  // to how translation was done. Our u_rotation will update each verticie from the position
+  // attribute and allow it to rotate! The math here can be associated with the unit circle which for
+  // each position on the circle an X and a Y can be calcuated with will always be <=1 hence the name unit 
+  // circle! It is these values that define our radians and by multiplying it with the verticies of position
+  // we achieve rotation. Notice how we also dont convert to clipspace first
+  vec2 rotatedPosition = vec2(
+     a_position.x * u_rotation.y + a_position.y * u_rotation.x,
+     a_position.y * u_rotation.y - a_position.x * u_rotation.x);
+
+  // Add in the translation.
+  vec2 position = rotatedPosition + u_translation;
+
+  // convert the position from pixels to 0.0 to 1.0
+  vec2 zeroToOne = position / u_resolution;
+
+  // convert from 0->1 to 0->2
+  vec2 zeroToTwo = zeroToOne * 2.0;
+
+  // convert from 0->2 to -1->+1 (clipspace)
+  vec2 clipSpace = zeroToTwo - 1.0;
+
+  // Will always expect a vec4
+  gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+}
+</script>
+<!-- fragment shader -->
+<script  id="fragment-shader-2d" type="x-shader/x-fragment">
+precision mediump float;
+
+// Still the basic fragment shader
+uniform vec4 u_color;
+
+void main() {
+   gl_FragColor = u_color;
+}
+</script><!--
+for most samples webgl-utils only provides shader compiling/linking and
+canvas resizing because why clutter the examples with code that's the same in every sample.
+See https://webglfundamentals.org/webgl/lessons/webgl-boilerplate.html
+and https://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+for webgl-utils, m3, m4, and webgl-lessons-ui.
+-->
+<script src="../BoilerPlate/webgl-utils.js"></script>
+<script src="../BoilerPlate/webgl-lessons-ui.js"></script>
+<script src="app.js"></script>
