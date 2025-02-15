@@ -211,8 +211,8 @@
 
 			canvasMove(event)
 			{
-				// Run only when there are shapes in myShapes
-				if(this.myShapes.length != 0)
+				// Run only when there are shapes in myShapes and the last shape is not yet finished
+				if(this.myShapes.length != 0 && !this.myShapes[this.myShapes.length-1].isFinished)
 				{
 					//console.log("Shape Exists!");
 
@@ -233,7 +233,7 @@
 					//console.log(realX+","+realY);
 					var x = -1 + 2 * realX / myCanvas.width;
 					var y = -1 + 2 * (myCanvas.height - realY) / myCanvas.height;
-					//console.log("The click occurred on "+x+","+y);
+					console.log("The click occurred on "+x+","+y);
 
 					// Cycle-in this temporary vertex
 					gl.clearColor(1,1,1,1); //can change to black to make a spooky game
@@ -245,7 +245,7 @@
 					{
 						this.myShapes[this.myShapes.length-1].positions.pop();
 					}
-					console.log(this.myShapes[this.myShapes.length-1].positions.length);
+					//console.log(this.myShapes[this.myShapes.length-1].positions.length);
 					//this.myShapes[this.myShapes.length-1].vertCount--;
 					
 				}

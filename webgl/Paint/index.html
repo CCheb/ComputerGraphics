@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Paint!</title>
+        <script id="2dVertexShader" type="notjs">
+            // attribute used for reading buffers
+		    attribute vec4 a_position;	
+
+		    //We now want to read in Colors
+		    attribute vec3 a_color;
+
+		    //However, we want to send the color to
+		    //The fragment Shader
+		    varying vec3 fragColor;
+		    void main()
+		    {
+		    	fragColor = a_color;
+
+		    	// Will always be of type vec4
+		    	gl_Position=a_position;
+		    }		
+        </script>
+
+        <script id="2dFragmentShader" type="notjs">
+            //Fragment shaders do not have precision so we have to set it.
+		    precision mediump float;
+
+		    // Same varying from the vertex shader
+		    varying vec3 fragColor;
+		    void main()
+		    {
+		    	//gl_FragColor = vec4(0,0,1,1); //Between 0 and 1.
+            
+		    	// Need to also pass the alpha channel (1)
+		    	gl_FragColor = vec4(fragColor,1);
+		    }
+        </script>
+
+        <script>
+            // Add something here to connect everything together
+			class WebGL_Interface
+			{
+				constructor()
+				{
+					// We set out canvas size earlier, now its time to set our gl viewport
+					// aka our clip space (-1 to 1) inside our canvas
+					//setup viewport, we want to draw on the same size as the canvas
+					gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
+					//set clear colors this sets our background
+					gl.clearColor(1,1,1,1); 
+					gl.clear(gl.COLOR_BUFFER_BIT);
+					//values are between 0 and 1 for black and white
+
+
+					// We first make sure to grab a reference to the shader source code
+					var vertexShaderSource = document.getElementById("2dVertexShader").text;
+					var fragmentShaderSource = document.getElementById("2dFragmentShader").text;
+
+					
+					// grabbing our compiled shaders through the createShader function
+					var vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
+					var fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+					
+					// With the two shaders now compiled we can now link them together into a
+					// program
+					this.program = this.createProgram(vertexShader, fragmentShader);
+
+					
+					// Anything before the useProgram function is considered to be initiallization
+					// code. Most of webgl is setting up shop/state. 
+					gl.useProgram(this.program);
+			
+				}
+				createShader(type,source)
+				{
+					// type = shader variable (e.g. vertexShader or fragmentShader)
+					// source = text/source code (e.g. vertexShaderSource)
+
+					// Here we are creating the shader variable with appropriate type and
+					// connecting the source code to it
+					var shader = gl.createShader(type);
+					gl.shaderSource(shader,source);
+
+					// After linking our shader and source together, we can then compile them
+					// Similar process to the C/C++ compile process
+					gl.compileShader(shader);
+
+					// Always make sure to do some error checking
+					var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
+					if(success){
+						// If everything goes well, return the compiled shader so that it can be
+						// linked later
+						return shader;
+					}
+					//else if didnt work
+					console.error(gl.getShaderInfoLog(shader));
+					gl.deleteShader(shader);
+				}
+			
+				createProgram(vs,fs)
+				{
+					// vs = vertex shader; fs = fragment shader
+					// create the program variable
+					var program = gl.createProgram();
+					// attaching both shaders to the program and linking them together 
+					gl.attachShader(program, vs);
+					gl.attachShader(program, fs);
+					gl.linkProgram(program);
+					
+					var success = gl.getProgramParameter(program,gl.LINK_STATUS);
+					if(success){
+						return program;
+					}
+					console.error(gl.getProgramInfoLog(program));
+					gl.deleteProgram(program);
+				}
+			}
+        </script>
+
+        <script>
+            class Shape
+            {
+                constructor()
+                {
+                    // Defaulted to red
+                    this.r = 1;
+                    this.g = 0;
+                    this.b = 0;
+
+                    this.isFill = true;
+                    this.isFinished = false;
+                    this.vertCount = 0;
+
+                    this.positions = [];
+                    this.positionBuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+
+                }
+
+                setupRender(program)
+                {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+                    var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+					var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+
+                    gl.enableVertexAttribArray(positionAttributeLocation);
+					gl.enableVertexAttribArray(colorAttributeLocation);
+					
+                    //now we have to specify how to read our vertcies 
+					var size = 3;	// each vertex has an x ,y ,z
+					var type = gl.FLOAT;	// the type is float
+					var normalize = false;	// dont normalize since the range is already in clipspace
+					var stride = 6 * Float32Array.BYTES_PER_ELEMENT;		// no stride since the vertex doesnt have multiple properties 
+					var offset = 0;		// start at the begining of the buffer
+					// Finally set our attribute
+					gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset) //great quiz or text question
+					
+                    gl.vertexAttribPointer(
+						colorAttributeLocation,
+						3,
+						gl.FLOAT,
+						gl.FALSE,
+						6 * Float32Array.BYTES_PER_ELEMENT,	// Have to specify bytes. In this case a vertex is 5 wide (xy,rbg) float = 4 bytes
+						3 * Float32Array.BYTES_PER_ELEMENT
+					)
+                }   
+            }
+
+            class Triangle extends Shape
+            {
+                addPoint(x,y)
+                {
+                    // x, y, z = 0, r, g, b
+					// pushing the coordinates obtained from the mouse click over to the 
+					// positions array. We also pass in some color values
+					this.positions.push(x, y, 0, this.r, this.g, this.b);
+					//console.log(this.positions.length);
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					
+					// Increase the vertCount since we just drew a shape
+					this.vertCount++;
+
+					// we continuosly add verticies by clicking on the canvas and once we click
+					// in three spots positions will have three verticies in which it can now draw 
+					// a triangle! Ideally each shape child (rectangle, circle, triangle etc) will
+					// have its own unique render and addPoint functions.
+					if(this.vertCount == 3)
+					{
+						this.isFinished = true;
+					}
+                }
+
+                addTempPoint(x,y)
+                {
+                    this.positions.push(x, y, 0, this.r, this.g, this.b);
+					//console.log(this.positions.length);
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					
+                }
+
+                render(program)
+                {
+                    this.setupRender(program);
+
+                    var primitiveType = (this.isFill) ? gl.TRIANGLES : gl.LINE_LOOP;
+					var offset = 0;
+					if(this.isFinished)
+					{
+						// Only render triangles if the shape is completed!
+						//primitiveType = gl.TRIANGLES;
+						gl.drawArrays(primitiveType, offset, this.vertCount);
+					}
+					else
+					{
+						// Add a 1 to consider the temp vertex
+						gl.drawArrays(primitiveType, offset, this.vertCount+1);
+						
+					}
+                }
+                
+            }
+        </script>
+
+        <script>
+            class Main
+            {
+                constructor()
+                {
+                    this.myWebGL = new WebGL_Interface();
+                    this.program = this.myWebGL.program;
+                    this.myShapes = [];
+                    
+                    // current variables
+                    this.currentShape = "Triangle";
+                    this.cR = 1;
+                    this.cG = 0;
+                    this.cB = 0;
+                    this.cFill = true;
+
+                }
+
+                getCoordinates(event)
+                {
+                    var rect = canvas.getBoundingClientRect();
+
+				    // clientX and Y combine to form the mouse position
+				    // relative to the 0,0 at the very top left of the page
+				    // aka the browser window. 
+				    var realX = event.clientX - rect.left;
+				    var realY = event.clientY - rect.top;
+
+				    // These coordinates are still in pixel form and we need to convert
+				    // them over to clipspace
+				    console.log(realX+","+realY);
+				    var x = -1 + 2 * realX / myCanvas.width;
+				    var y = -1 + 2 * (myCanvas.height - realY) / myCanvas.height;
+				    console.log("The click occurred on "+x+","+y);
+
+                    return [x, y];
+                }
+
+                canvasLClick(event)
+                {
+                    var coords = this.getCoordinates(event);
+                    var [x,y] = coords;
+
+                    if(this.myShapes.length == 0 || this.myShapes[this.myShapes.length-1].isFinished)
+                    {
+                        switch(this.currentShape)
+                        {
+                            case "Triangle":
+                                var temp = new Triangle();
+                                break;
+                        }
+
+                        temp.r = this.cR;
+                        temp.g = this.cG;
+                        temp.b = this.cB;
+                        temp.isFill = this.cFill;
+
+                        temp.addPoint(x,y);
+                        this.myShapes.push(temp);
+                    }
+                    else
+				    { //If last shape not finished drawing, point to last shape
+				    	this.myShapes[this.myShapes.length-1].addPoint(x,y);
+				    }
+
+                    if(this.myShapes[this.myShapes.length-1].isFinished)
+					    this.renderAll();
+
+                }
+
+                renderAll()
+                {
+                    // Iterate through every shape and call its render function
+				    for(let i = 0; i < this.myShapes.length; i++)
+                    {
+				    	// see how we need to pass the program as a parameter!
+				    	this.myShapes[i].render(this.program);
+				    }
+				    console.log(this.myShapes.length);
+                }
+
+                canvasMove(event)
+                {
+
+                    if(this.myShapes.length != 0 && !this.myShapes[this.myShapes.length-1].isFinished)
+                    {
+                        var coords = this.getCoordinates(event);
+                        var [x,y] = coords;
+
+                        gl.clearColor(1,1,1,1); //can change to black to make a spooky game
+					    gl.clear(gl.COLOR_BUFFER_BIT);
+					    this.myShapes[this.myShapes.length-1].addTempPoint(x,y);
+					    this.renderAll();
+					    // Need to pop 6 items == 1 vertex
+                        // CHANGE THIS
+					    for(let i = 0; i < 6; i++)
+					    {
+					    	this.myShapes[this.myShapes.length-1].positions.pop();
+					    }
+                    }
+                    else
+                    {
+                        console.log("Shape doesnt exist yet!");
+                    }
+                }
+
+                shapeHandler(menu)
+                {
+                    console.log("Shape passed: " + menu.value);
+                    this.currentShape = menu.value;
+                }
+
+                colorHandler(menu)
+                {
+                    console.log("Color Passed: " + menu.value);
+                    var stringRbg = menu.value;
+                    var rbgArray = stringRbg.split(',').map(num => Number(num));
+
+                    this.cR = rbgArray[0];
+                    this.cG = rbgArray[1];
+                    this.cB = rbgArray[2];
+                    
+                }
+
+                fillHandler(button)
+                {
+                    if(button.innerHTML == "Filled")
+                    {
+                        this.cFill = false;
+                        button.innerHTML = "Not Filled";
+                    }
+                    else
+                    {
+                        this.cFill = true;
+                        button.innerHTML = "Filled";
+                    }
+                }
+
+                static mouseLC(event)
+                {
+                    m.canvasLClick(event);
+                }
+
+                static mouseM(event)
+                {
+                    m.canvasMove(event);
+                }
+
+                static shapeH()
+                {
+                    m.shapeHandler(this);
+                }
+
+                static colorH()
+                {
+                    m.colorHandler(this);
+                }
+
+                static fillH()
+                {
+                    m.fillHandler(this);
+                }
+            }
+        
+            
+        </script>
+    </head>
+    <body>
+        <h1 style="color:blueviolet">Paint!</h1>
+
+        <canvas id="myCanvas" width="640" height="400" style = "border: 1px solid #000;">
+            Browser does not support canvas
+        </canvas>
+
+        <div>
+            <select name="shapes" id="shape" >
+                <option value="Triangle">Triangle</option>
+                <option value="Triangle">Triangle</option>
+            </select>
+
+            <select name="colors" id="color" size="2">
+                <option value="1,0,0">Red</option>
+                <option value="0,0,1">Blue</option>
+            </select>
+
+            <button id="fill">Filled</button>
+        </div>
+
+
+        <script>
+
+            var canvas = document.getElementById("myCanvas");
+            var gl = canvas.getContext("webgl");
+
+            var m = new Main();
+
+            canvas.addEventListener("click",Main.mouseLC);
+            canvas.addEventListener("mousemove",Main.mouseM);
+
+            var myShape = document.getElementById("shape");
+            myShape.addEventListener("click",Main.shapeH);
+
+            var myColor = document.getElementById("color");
+            myColor.addEventListener("click",Main.colorH);
+
+            var myFill = document.getElementById("fill");
+            myFill.addEventListener("click",Main.fillH);
+        </script>
+    </body>
+
+</html>
