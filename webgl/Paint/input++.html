@@ -276,7 +276,12 @@
 			
 			buttonHandle()
 			{
-				console.log("You clicked the button");
+				// Clear the myShapes array by just assigning it an empty array
+				// then clear the screen and send an output log
+				this.myShapes = [];
+				gl.clearColor(1,1,1,1); //can change to black to make a spooky game
+				gl.clear(gl.COLOR_BUFFER_BIT);
+				console.log("Canvas cleared!");
 			}	
 			
 			// Callback functions
