@@ -367,6 +367,17 @@
                     }
                 }
 
+                clearHandler()
+                {
+                    // Clear the myShapes array by just assigning it an empty array
+				    // then clear the screen and send an output log
+				    this.myShapes = [];
+				    gl.clearColor(1,1,1,1); //can change to black to make a spooky game
+				    gl.clear(gl.COLOR_BUFFER_BIT);
+				    console.log("Canvas cleared!");
+
+                }
+
                 static mouseLC(event)
                 {
                     m.canvasLClick(event);
@@ -390,6 +401,11 @@
                 static fillH()
                 {
                     m.fillHandler(this);
+                }
+
+                static clearH()
+                {
+                   m.clearHandler()
                 }
             }
         
@@ -415,6 +431,8 @@
             </select>
 
             <button id="fill">Filled</button>
+
+            <button id="clear">Clear Canvas</button>
         </div>
 
 
@@ -436,6 +454,11 @@
 
             var myFill = document.getElementById("fill");
             myFill.addEventListener("click",Main.fillH);
+
+            var myClear = document.getElementById("clear");
+            myClear.addEventListener("click",Main.clearH);
+
+
         </script>
     </body>
 
