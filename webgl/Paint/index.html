@@ -382,32 +382,33 @@
 
             class Circle extends Shape
             {
-                constructor(x,y)
+                constructor(x,y,segments)
                 {
                     super();
 
                     this.fX = x;
                     this.fY = y;
+                    this.segments = segments;
                     this.radius;
                 }
 
                 formCircle()
                 {
                     // Want 20 evenly placed points around the circle
-                    const angleIncrement = (2 * Math.PI) / 20;
+                    const angleIncrement = (2 * Math.PI) / this.segments;
 
-                    for (let i = 0; i < 20; i++) 
+                    for (let i = 0; i < this.segments; i++) 
                     {
                         const angle = i * angleIncrement;
-                        const x = this.radius * Math.cos(angle);
-                        const y = this.radius * Math.sin(angle);
+                        const x = (this.radius * Math.cos(angle)) + this.fX;
+                        const y = (this.radius * Math.sin(angle)) + this.fY;
                         this.positions.push(x, y, 0, this.r, this.g, this.b);  // Store each point's x and y
                     }
                 }
 
                 addPoint(x,y)
                 {
-                    this.positions.push(x, y, 0, this.r, this.g, this.b);
+                    //this.positions.push(x, y, 0, this.r, this.g, this.b);
 
                     gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
 
@@ -427,7 +428,10 @@
                         // Second click will be the first point the render will see 
                         //this.positions.push(this.positions.push(x, y, 0, this.r, this.g, this.b)); 
 
-                        this.radius = x - this.fX;
+                        var dx = x - this.fX;
+                        var dy = y - this.fY;
+
+                        this.radius = Math.sqrt(dx * dx + dy * dy);
                         // Now add the rest of the points around the circle
                         this.formCircle();
 
@@ -444,7 +448,11 @@
                 addTempPoint(x,y)
                 {
                     //this.positions.push(x, y, 0, this.r, this.g, this.b);
-                    this.radius = x - this.fX;
+                    //this.positions = [];
+                    var dx = x - this.fX;
+                    var dy = y - this.fY;
+
+                    this.radius = Math.sqrt(dx * dx + dy * dy);
                     this.formCircle();
 
                     gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -469,18 +477,18 @@
                     this.setupRender(program);
 
                     // default to line loop since we are drawing a line!
-                    var primitiveType = gl.LINE_LOOP;
+                    var primitiveType = gl.LINES;
 					var offset = 0;
 					if(this.isFinished)
 					{
                         var primitiveType = (this.isFill) ? gl.TRIANGLE_FAN : gl.LINE_LOOP;
 						// Only render triangles if the shape is completed!
-						gl.drawArrays(primitiveType, offset, this.vertCount+18);
+						gl.drawArrays(primitiveType, offset, this.vertCount+(this.segments-2));
 					}
 					else
 					{
 						// Add a 21 to consider the temp vertex
-						gl.drawArrays(primitiveType, offset, this.vertCount+20);
+						gl.drawArrays(primitiveType, offset, this.vertCount+(this.segments));
 						console.log(this.positions.length);
 					}
 
@@ -546,7 +554,7 @@
                                 var temp = new Rectangle(x,y);
                                 break;
                             case "Circle":
-                                var temp = new Circle(x,y);
+                                var temp = new Circle(x,y,100);
 
                         }
 
