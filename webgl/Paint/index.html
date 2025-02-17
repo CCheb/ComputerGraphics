@@ -120,12 +120,14 @@
         <script>
             class Shape
             {
-                constructor()
+                constructor(name)
                 {
                     // Defaulted to red
                     this.r = 1;
                     this.g = 0;
                     this.b = 0;
+
+                    this.name = name;
 
                     this.isFill = true;
                     this.isFinished = false;
@@ -170,6 +172,11 @@
 
             class Triangle extends Shape
             {
+                constructor()
+                {
+                    super("Triangle");
+                }
+
                 addPoint(x,y)
                 {
                     // x, y, z = 0, r, g, b
@@ -237,6 +244,11 @@
 
             class Line extends Shape
             {
+                constructor()
+                {
+                    super("Line");
+                }
+
                 addPoint(x,y)
                 {
                     this.positions.push(x, y, 0, this.r, this.g, this.b);
@@ -300,7 +312,7 @@
                 {
                     // First call parent constructor to initialize the parent
                     // defined variables
-                    super();
+                    super("Rectangle");
                     // Represent the location of the first click
                     this.fX = x;
                     this.fY = y;
@@ -384,7 +396,7 @@
             {
                 constructor(x,y,segments)
                 {
-                    super();
+                    super("Circle");
 
                     this.fX = x;
                     this.fY = y;
@@ -494,6 +506,72 @@
 
                 }
             }
+
+            class Npolygon extends Shape
+            {
+                constructor()
+                {
+                    super("N-Polygon");
+                    this.isRightClick = false;
+                }
+
+                addPoint(x,y)
+                {
+                    this.positions.push(x, y, 0, this.r, this.g, this.b);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					
+					// Increase the vertCount since we just drew a shape
+					this.vertCount++;
+                }
+
+                addTempPoint(x,y)
+                {
+                    this.positions.push(x, y, 0, this.r, this.g, this.b);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+
+                }
+
+                delTempPoint()
+                {
+                    for(let i = 0; i < 6; i++)
+                    {
+                        this.positions.pop();
+                    }
+                }
+
+                render(program)
+                {
+                    this.setupRender(program);
+
+                    if(this.isRightClick == true)
+                        this.isFinished = true;
+
+                    // default to line loop since we are drawing a line!
+                    var primitiveType = gl.LINE_LOOP;
+					var offset = 0;
+					if(this.isFinished)
+					{
+                        var primitiveType = (this.isFill) ? gl.TRIANGLE_FAN : gl.LINE_LOOP;
+						// Only render triangles if the shape is completed!
+						gl.drawArrays(primitiveType, offset, this.vertCount);
+					}
+					else
+					{
+						// Add a 1 to consider the temp vertex
+						gl.drawArrays(primitiveType, offset, this.vertCount+1);
+						
+					}
+
+                }
+            }
         </script>
 
         <script>
@@ -555,6 +633,10 @@
                                 break;
                             case "Circle":
                                 var temp = new Circle(x,y,100);
+                                break;
+                            case "N-Polygon":
+                                var temp = new Npolygon();
+                                break;
 
                         }
 
@@ -574,6 +656,16 @@
                     if(this.myShapes[this.myShapes.length-1].isFinished)
 					    this.renderAll();
 
+                }
+
+                canvasRClick(event)
+                {
+                    console.log("Right Clicked!");
+                    if(this.myShapes != 0 && this.myShapes[this.myShapes.length-1].name == "N-Polygon")
+                    {
+                        this.myShapes[this.myShapes.length-1].isRightClick = true;
+                        this.renderAll();
+                    }
                 }
 
                 renderAll()
@@ -657,6 +749,11 @@
                     m.canvasLClick(event);
                 }
 
+                static mouseRC(event)
+                {
+                    m.canvasRClick(event)
+                }
+
                 static mouseM(event)
                 {
                     m.canvasMove(event);
@@ -694,18 +791,20 @@
         </canvas>
 
         <div>
-            <select name="shapes" id="shape" size="4">
+            <select name="shapes" id="shape" size="5">
                 <option value="Triangle">Triangle</option>
                 <option value="Line">Line</option>
                 <option value="Rectangle">Rectangle</option>
                 <option value="Circle">Circle</option>
+                <option value="N-Polygon">N-Polygon</option>
             </select>
 
-            <select name="colors" id="color" size="4">
+            <select name="colors" id="color" size="5">
                 <option value="1,0,0">Red</option>
                 <option value="0,0,1">Blue</option>
                 <option value="0,1,0">Green</option>
                 <option value="1,0.647,0">Orange</option>
+                <option value="0.5,0,0.5">Purple</option>
             </select>
 
             <button id="fill">Filled</button>
@@ -722,6 +821,7 @@
             var m = new Main();
 
             canvas.addEventListener("click",Main.mouseLC);
+            canvas.addEventListener("contextmenu",Main.mouseRC)
             canvas.addEventListener("mousemove",Main.mouseM);
 
             var myShape = document.getElementById("shape");
