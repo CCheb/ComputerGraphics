@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script id="2dVertexShader" type="notjs">
+            // for reading the vertex buffer
+		    attribute vec4 a_position;	
+		    //We now want to read in Colors
+		    attribute vec3 vert_color;
+
+		    //However, we want to send the color to
+		    //The fragment Shader. Declare it here and then in the fragment shader. Both will be the same variable
+		    varying vec3 fragColor;
+            
+		    //Now we need a uniform.  A uniform is something consistent for all the vertices
+		    //in buffers. Ideally, we would use mat4 instead of vec3
+		    uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
+		    uniform vec3 rotation;	// Set until changed
+		    
+            
+		    //Use a function to position the object. The X, Y, and Z are the vertices to be translated (pos)
+		    vec4 PositionObject(vec4 pos)
+		    {
+		    	// The transform matrix. Matrix is flipped around the X, y (eigen values)
+		    	// WebGL will take colum-major matricies. So be aware
+		    	mat4 translateM = mat4(1.0,0.0,0.0,0.0,
+		    				  		   0.0,1.0,0.0,0.0,
+		    				   		   0.0,0.0,1.0,0.0,
+		    				           transform.x,transform.y,transform.z,1.0);
+		    	// Multiplying each vertex (x,y,z,1) by this matrix. This will cause it to move
+		    	return translateM*pos;	
+		    }
+		    //Use a function to Rotate the object. Again we pass in the vertex
+		    vec4 RotateObject(vec4 pos)
+		    {
+		    	//This is a nice trick
+		    	vec3 c = cos(rotation);
+		    	vec3 s = sin(rotation);
+		    	//Surprise!  we have to go column first when we enter the matrix.
+
+		    	mat4 rotateX = mat4(1.0,0.0,0.0,0.0,
+		    						0.0,c.x,-1.0*s.x,0.0,
+		    						0.0,s.x,c.x,0.0,
+		    						0.0,0.0,0.0,1.0); 	// Rotation when x=x;
+		    	// Do your X and Z rotations (y=y)
+		    	mat4 rotateY = mat4(c.y,0.0,-1.0*s.y,0.0,
+		    						0.0,1.0,0.0,0.0,
+		    						s.y,0.0,c.y,0.0,
+		    						0.0,0.0,0.0,1.0);
+		    	mat4 rotateZ = mat4(c.z,-1.0*s.z,0.0,0.0,
+		    						s.z,c.z,0.0,0.0,
+		    						0.0,0.0,1.0,0.0,
+		    						0.0,0.0,0.0,1.0);	// Rotation when z=z;
+		    	return rotateX*rotateZ*rotateY*pos;
+		    }
+		    void main()
+		    {
+		    	fragColor = vert_color;
+		    	// Rotate first then translate to avoid orbiting
+		    	// Scaling -> Rotation -> Translation. Know that its from right to left
+		    	gl_Position=PositionObject(RotateObject(a_position));
+
+		    	// In the case you wanted to create the matricies inside the main()
+		    	// Alternate version: gl_Position = T*R*S*a_position
+		    }		
+
+        </script>
+        <script id="2dFragmentShader" type="notjs">
+            //Fragment shaders do not have precision so we have to set it.
+		    precision mediump float;
+		    varying vec3 fragColor; 	// Same frag color as in the vertex shader
+		    void main()
+		    {
+		    	//gl_FragColor = vec4(0,0,1,1); //Between 0 and 1.
+		    	gl_FragColor = vec4(fragColor,1);	// Alpha == 1;
+		    }
+
+        </script>
+
+        <script src="webgl_interface.js"></script>
+        <script src="Shape.js"></script>
+
+        <script>
+            function loop()
+		    {
+			    // Clear -> Update -> Render
+			    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+                
+			    for(var i = 0; i < m.myGems.length; i++)	
+			    {
+			    	
+			    	// myTriangle[] is similar to myShapes from paint program
+			    	// we have reference of myTriangle thanks to the m object
+			    	m.myGems[i].rot[1]+= .008; // Constantly updating the rotation so that the object 
+			    	//m.myTriangle[i].rot[0]-= .008; // Will rotate in all three axies if enabled
+			    	//m.myTriangle[i].rot[2]-= .008;
+			    	// appears to be rotating. Positive == cw; Negative == ccw;
+			    	//m.myTriangle[i].loc[0]+= .001;
+			    	//m.myTriangle[i].loc[1]+= .001;
+			    	// Update then render
+			    	m.myGems[i].render(m.myWEBGL.program);
+			    }
+            
+			    requestAnimationFrame(loop);	// Allows us to loop this function every certain amount of frames
+		    }   
+
+
+
+            class main
+            {
+                constructor()
+                {
+                    // Calling this will run the webgl setup for us automatically
+				    this.myWEBGL = new WebGL_Interface();
+				    //myWebGL= this.myWEBGL;
+				    this.myGems = [];
+				    this.myGems.push(new Gem()); // Our first instance
+				    
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h1 style="color: blueviolet;">Placement Lab!</h1>
+
+        <canvas id="myCanvas" width="600" height="600" style="border: 1px solid #000;">
+            No canvas for you buddy
+        </canvas>
+        
+        <script>
+            var canvas = document.getElementById("myCanvas");
+            var gl = canvas.getContext("webgl");
+
+            var m = new main();
+
+            requestAnimationFrame(loop);
+        </script>
+
+    </body>
+</html>
