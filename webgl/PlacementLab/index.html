@@ -50,6 +50,8 @@
 		    						s.z,c.z,0.0,0.0,
 		    						0.0,0.0,1.0,0.0,
 		    						0.0,0.0,0.0,1.0);	// Rotation when z=z;
+				// Idea is to pass in the rotation and to enable/disable certain rotations
+				// based on what is passed
 		    	return rotateX*rotateZ*rotateY*pos;
 		    }
 		    void main()
@@ -76,27 +78,243 @@
 
         </script>
 
-        <script src="webgl_interface.js"></script>
-        <script src="Shape.js"></script>
+        <script>
+			// WebGL program setup
+			class WebGL_Interface
+			{
+				constructor()
+				{
+					this.vertexShaderSource = document.getElementById("2dVertexShader").text;
+					this.fragmentShaderSource = document.getElementById("2dFragmentShader").text;
+					// Final return will be the fully compiled shader
+					this.vertexShader = this.createShader(gl.VERTEX_SHADER, this.vertexShaderSource);
+					this.fragmenShader = this.createShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+					//Link to program. To create it we need to pass it the compiled shaders
+					this.program = this.createProgram(this.vertexShader,this.fragmenShader);
+					//setup our viewport. Make sure it matches the canvas size
+					gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
+					//set clear colors
+					gl.clearColor(1,1,1,1);	// White
+					gl.clear(gl.COLOR_BUFFER_BIT);		
+					//what progbram to use;
+
+					//We will need this for now! That way shapes will appear as expected
+					gl.enable(gl.DEPTH_TEST);
+
+					gl.useProgram(this.program);
+				}
+
+				createShader(type,source)
+				{
+					// Linking the shader source code with the type that way gl will know about it.
+					var shader = gl.createShader(type);
+					gl.shaderSource(shader,source);
+					gl.compileShader(shader);
+					var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
+					if(success)	// Always make sure to do some error checking since webGL will not let you know otherwise
+					{
+						return shader;
+					}
+					//Else it didn't work
+					console.error(gl.getShaderInfoLog(shader));
+					gl.deleteShader(shader);
+				}
+
+				createProgram(vs,fs)
+				{
+					var program = gl.createProgram();
+					gl.attachShader(program,vs);
+					gl.attachShader(program,fs);
+					gl.linkProgram(program);
+					var succsess = gl.getProgramParameter(program,gl.LINK_STATUS);
+					if(succsess)
+					{
+						return program;
+					}
+					console.error(gl.getProgramInfoLog(program));
+					gl.deleteProgram(program);	
+				}
+			
+			}
+		</script>
 
         <script>
+			// Our object class
+			class Gem
+			{
+				constructor()
+				{
+					// set up the buffer along with the verticies 
+					this.buffer = gl.createBuffer();
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+				
+					// Idea is to draw a gem (8 sided shape)
+					this.verticies =
+					[	//Top Front
+						0,0.15,0,   1,0,0,
+						0.1,0,0.1,  1,0,0,
+						-0.1,0,0.1,	 1,0,0,
+						 //Bottom Front
+						0,-0.15,0,	0,1,0,
+						0.1,0,0.1,	0,1,0,
+						-0.1,0,0.1,	0,1,0,
+						//Top Left
+						0,0.15,0,	 0,0,1,
+						-0.1,0,0.1,	 0,0,1,
+						-0.1,0,-0.1, 0,0,1,
+						//Top Right
+						0,0.15,0,	1,1,0,
+						0.1,0,0.1,	1,1,0,
+						0.1,0,-0.1,	1,1,0,
+						//Top rear
+						0,0.15,0,		0,1,1,
+						0.1,0,-0.1,		0,1,1,
+						-0.1,0,-0.1,	0,1,1,
+
+						-0.1,0,-0.1,	1,0,1,
+						0.1,0,-0.1,		1,0,1,
+						0,-0.15,0,		1,0,1,
+				
+						0,-0.15,0,		1,0.3,0.5,
+						0.1,0,0.1,		1,0,0.5,
+						0.1,0,-0.1,		1,0.3,0.5,
+				
+						-0.1,0,0.1,		0.5,0.1,0.3,
+						0,-0.15,0,		1,0.1,0.3,
+						-0.1,0,-0.1,	0.5,0.1,1
+				
+					];
+				
+					// Link the buffer with the vertex array
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verticies), gl.STATIC_DRAW);
+				
+					// Each object has the ability to specify its own location and rotation. Idea is to
+					// link these two variables with the static variables transform and rotation. By default
+					// the gem will spawn in the middle of the screen with no rotation unless specified otherwise
+					this.loc = [0.0,0.0,0.0];
+					this.rot = [0.0,0.0,0.0];
+				
+					// Generate a random axis and direction
+					// 0 == X, 1 == Y, 2 == Diagonal
+					this.dir = Math.floor(Math.random() * 3);
+				
+					// s. == sign (sX == sign of X)
+					// 0 == positive, 1 == negative
+					this.sX = Math.floor(Math.random() * 2);
+					this.sY = Math.floor(Math.random() * 2);
+				
+				}
+			
+				render(program)
+				{
+					// Telling webGL which buffer 
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+					//First we bind the buffer for triangle 1. Formating the attribute to read the buffer
+					var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+					var size = 3;          // 2 components per iteration (position and color)
+					var type = gl.FLOAT;   // the data is 32bit floats
+					var normalize = false; // don't normalize the data
+					var stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element     // 0 = move forward size * sizeof(type) each iteration to get the next position
+					var offset = 0;        // start at the beginning of the buffer
+					gl.enableVertexAttribArray(positionAttributeLocation);
+					gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+					//Now we have to do this for color
+					var colorAttributeLocation = gl.getAttribLocation(program,"vert_color");
+					//We don't have to bind because we already have the correct buffer bound.
+					size = 3;
+					type = gl.FLOAT;
+					normalize = false;
+					stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
+					offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
+					gl.enableVertexAttribArray(colorAttributeLocation);
+					gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
+
+					// Setting our state variables (uniforms) before we draw
+					// We get reference of the uniforms using getUniformLocation
+					var tranLoc  = gl.getUniformLocation(program,'transform');
+					// uniform3floatvector
+					// Now pass the objects location and translation (loc and rot) over to the uniforms.
+					// If rot changes, rotation will know about it. 
+					gl.uniform3fv(tranLoc,new Float32Array(this.loc));
+					var thetaLoc = gl.getUniformLocation(program,'rotation');
+					gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
+				
+					var primitiveType = gl.TRIANGLES;
+					offset = 0;
+					var count = 24;		// Make sure this is correct
+					gl.drawArrays(primitiveType, offset, count);
+				 }
+			}
+		</script>
+
+        <script>
+			// Our render loop
             function loop()
 		    {
 			    // Clear -> Update -> Render
 			    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
                 
-			    for(var i = 0; i < m.myGems.length; i++)	
+				// Start by rotating the three fixed objects in different axies
+				m.myGems[0].rot[1]-= .008;	// Top rotates y
+				m.myGems[1].rot[0]-= .008;	// Bottom left rotates x
+				m.myGems[2].rot[2]-= .008;	// Bottom right rotates z
+
+				// Make sure to render them
+				for(let i = 0; i < 3; i++)
+					m.myGems[i].render(m.myWEBGL.program);
+
+				// From here we can now focus on the objects that are spawned by clicks
+				// each Gem has direction variables that allow it to travel in a random direction
+			    for(var i = 3; i < m.myGems.length; i++)	
 			    {
-			    	
-			    	// myTriangle[] is similar to myShapes from paint program
-			    	// we have reference of myTriangle thanks to the m object
-			    	m.myGems[i].rot[1]+= .008; // Constantly updating the rotation so that the object 
-			    	//m.myTriangle[i].rot[0]-= .008; // Will rotate in all three axies if enabled
-			    	//m.myTriangle[i].rot[2]-= .008;
-			    	// appears to be rotating. Positive == cw; Negative == ccw;
-			    	//m.myTriangle[i].loc[0]+= .001;
-			    	//m.myTriangle[i].loc[1]+= .001;
-			    	// Update then render
+			    	// dir defines the axis to go (0 == x, y == 1, 2 == diagonal)
+					if(m.myGems[i].dir == 0)
+					{
+						// Once the axis is known, we check whether its going in the positive
+						// or negative direction (0 == postive, 1 == negative)
+						if(m.myGems[i].sX == 0)
+							m.myGems[i].loc[0] += 0.008;
+						else
+							m.myGems[i].loc[0] -= 0.008;
+					}
+					else if(m.myGems[i].dir == 1)
+					{
+						if(m.myGems[i].sY == 0)
+							m.myGems[i].loc[1] += 0.008;
+						else
+							m.myGems[i].loc[1] -= 0.008;
+					}
+					else
+					{
+						// Diagonally we need to check 4 unique directions and we do that
+						// by checking the signs
+						if(m.myGems[i].sX == 0 && m.myGems[i].sY == 0)
+						{
+							m.myGems[i].loc[0] += 0.008;
+							m.myGems[i].loc[1] += 0.008;
+						}
+						else if(m.myGems[i].sX == 0 && m.myGems[i].sY == 1)
+						{
+							m.myGems[i].loc[0] += 0.008;
+							m.myGems[i].loc[1] -= 0.008;
+						}
+						else if(m.myGems[i].sX == 1 && m.myGems[i].sY == 0)
+						{
+							m.myGems[i].loc[0] -= 0.008;
+							m.myGems[i].loc[1] += 0.008;
+						}
+						else
+						{
+							m.myGems[i].loc[0] -= 0.008;
+							m.myGems[i].loc[1] -= 0.008;
+						}
+					}
+			    	// Know that loc and rot are linked with the static variables transform and rotation
+					// changing them will reflect changes to the vertex shader
+
+					// Finally we render each of the objects one by one
 			    	m.myGems[i].render(m.myWEBGL.program);
 			    }
             
@@ -111,11 +329,34 @@
                 {
                     // Calling this will run the webgl setup for us automatically
 				    this.myWEBGL = new WebGL_Interface();
-				    //myWebGL= this.myWEBGL;
+				    // will carry all of our objects
 				    this.myGems = [];
-				    this.myGems.push(new Gem()); // Our first instance
+
+					// Start by setting up the three fixed  gems along with their location
+					// Their rotation will be handled in the render loop
+					var top = new Gem();
+					var bLeft = new Gem();
+					var bRight = new Gem();
+
+					top.loc = [0,0.7,0];
+					bLeft.loc = [-0.7,-0.7,0];
+					bRight.loc = [0.7,-0.7,0];
+
+					// Finally push all three gems to the list
+				    this.myGems.push(top); 
+					this.myGems.push(bLeft);
+					this.myGems.push(bRight);
+
 				    
                 }
+
+				static canvasHandle(event)
+				{
+					// If the user left clicks then spawn a new gem. Its default location
+					// will be in the middle of the screen and its direction will be handled
+					// in the render loop
+					m.myGems.push(new Gem());
+				}
             }
         </script>
     </head>
@@ -127,12 +368,18 @@
         </canvas>
         
         <script>
+			// Our canvas and context variables
             var canvas = document.getElementById("myCanvas");
             var gl = canvas.getContext("webgl");
 
+			// Instance of main/driver code
             var m = new main();
 
             requestAnimationFrame(loop);
+
+			// Add an event listener to canvas so that when the user
+			// left clicks, a new gem will spawn
+			canvas.addEventListener("click",main.canvasHandle);
         </script>
 
     </body>
