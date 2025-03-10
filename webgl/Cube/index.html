@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script id="2dVertexShader" type="notjs">
+            // for reading the vertex buffer
+		    attribute vec4 a_position;	
+		    //We now want to read in Colors
+		    attribute vec3 vert_color;
+
+		    //However, we want to send the color to
+		    //The fragment Shader. Declare it here and then in the fragment shader. Both will be the same variable
+		    varying vec3 fragColor;
+            
+		    //Now we need a uniform.  A uniform is something consistent for all the vertices
+		    //in buffers. Ideally, we would use mat4 instead of vec3
+		    uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
+		    uniform vec3 rotation;	// Set until changed
+            uniform vec3 scale;
+		    
+            
+		    //Use a function to position the object. The X, Y, and Z are the vertices to be translated (pos)
+		    vec4 PositionObject(vec4 pos)
+		    {
+		    	// The transform matrix. Matrix is flipped around the X, y (eigen values)
+		    	// WebGL will take colum-major matricies. So be aware
+		    	mat4 translateM = mat4(1.0,0.0,0.0,0.0,
+		    				  		   0.0,1.0,0.0,0.0,
+		    				   		   0.0,0.0,1.0,0.0,
+		    				           transform.x,transform.y,transform.z,1.0);
+		    	// Multiplying each vertex (x,y,z,1) by this matrix. This will cause it to move
+		    	return translateM*pos;	
+		    }
+		    //Use a function to Rotate the object. Again we pass in the vertex
+		    vec4 RotateObject(vec4 pos)
+		    {
+		    	//This is a nice trick
+		    	vec3 c = cos(rotation);
+		    	vec3 s = sin(rotation);
+		    	//Surprise!  we have to go column first when we enter the matrix.
+
+		    	mat4 rotateX = mat4(1.0,0.0,0.0,0.0,
+		    						0.0,c.x,-1.0*s.x,0.0,
+		    						0.0,s.x,c.x,0.0,
+		    						0.0,0.0,0.0,1.0); 	// Rotation when x=x;
+		    	// Do your X and Z rotations (y=y)
+		    	mat4 rotateY = mat4(c.y,0.0,-1.0*s.y,0.0,
+		    						0.0,1.0,0.0,0.0,
+		    						s.y,0.0,c.y,0.0,
+		    						0.0,0.0,0.0,1.0);
+		    	mat4 rotateZ = mat4(c.z,-1.0*s.z,0.0,0.0,
+		    						s.z,c.z,0.0,0.0,
+		    						0.0,0.0,1.0,0.0,
+		    						0.0,0.0,0.0,1.0);	// Rotation when z=z;
+				// Idea is to pass in the rotation and to enable/disable certain rotations
+				// based on what is passed
+		    	return rotateX*rotateZ*rotateY*pos;
+		    }
+
+            vec4 ScaleObject(vec4 pos)
+            {
+                mat4 scaleM = mat4(scale.x,0,0,0,
+                                  0,scale.y,0,0,
+                                  0,0,scale.z,0,
+                                  0,0,0,1);
+                return scaleM*pos;
+            }
+		    void main()
+		    {
+		    	fragColor = vert_color;
+		    	// Rotate first then translate to avoid orbiting
+		    	// Scaling -> Rotation -> Translation. Know that its from right to left
+		    	gl_Position=PositionObject(RotateObject(ScaleObject(a_position)));
+
+		    	// In the case you wanted to create the matricies inside the main()
+		    	// Alternate version: gl_Position = T*R*S*a_position
+		    }		
+
+        </script>
+        <script id="2dFragmentShader" type="notjs">
+            //Fragment shaders do not have precision so we have to set it.
+		    precision mediump float;
+		    varying vec3 fragColor; 	// Same frag color as in the vertex shader
+		    void main()
+		    {
+		    	//gl_FragColor = vec4(0,0,1,1); //Between 0 and 1.
+		    	gl_FragColor = vec4(fragColor,1);	// Alpha == 1;
+		    }
+
+        </script>
+
+        <script>
+			// WebGL program setup
+			class WebGL_Interface
+			{
+				constructor()
+				{
+					this.vertexShaderSource = document.getElementById("2dVertexShader").text;
+					this.fragmentShaderSource = document.getElementById("2dFragmentShader").text;
+					// Final return will be the fully compiled shader
+					this.vertexShader = this.createShader(gl.VERTEX_SHADER, this.vertexShaderSource);
+					this.fragmenShader = this.createShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+					//Link to program. To create it we need to pass it the compiled shaders
+					this.program = this.createProgram(this.vertexShader,this.fragmenShader);
+					//setup our viewport. Make sure it matches the canvas size
+					gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
+					//set clear colors
+					gl.clearColor(0.811,0.941,0.998,1);	// White
+					gl.clear(gl.COLOR_BUFFER_BIT);		
+					//what progbram to use;
+
+					//We will need this for now! That way shapes will appear as expected
+					gl.enable(gl.DEPTH_TEST);
+
+					gl.useProgram(this.program);
+				}
+
+				createShader(type,source)
+				{
+					// Linking the shader source code with the type that way gl will know about it.
+					var shader = gl.createShader(type);
+					gl.shaderSource(shader,source);
+					gl.compileShader(shader);
+					var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
+					if(success)	// Always make sure to do some error checking since webGL will not let you know otherwise
+					{
+						return shader;
+					}
+					//Else it didn't work
+					console.error(gl.getShaderInfoLog(shader));
+					gl.deleteShader(shader);
+				}
+
+				createProgram(vs,fs)
+				{
+					var program = gl.createProgram();
+					gl.attachShader(program,vs);
+					gl.attachShader(program,fs);
+					gl.linkProgram(program);
+					var succsess = gl.getProgramParameter(program,gl.LINK_STATUS);
+					if(succsess)
+					{
+						return program;
+					}
+					console.error(gl.getProgramInfoLog(program));
+					gl.deleteProgram(program);	
+				}
+			
+			}
+		</script>
+
+        <script>
+			// Our object class
+			class Cube
+			{
+				constructor()
+				{
+					// set up the buffer along with the verticies 
+					this.buffer = gl.createBuffer();
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+				
+					// Idea is to draw a gem (8 sided shape)
+					this.verticies =
+					[	
+                       // Top
+		                -0.5, 0.5, -0.5,   0.5, 0.5, 0.5,
+		                -0.5, 0.5, 0.5,    0.5, 0.5, 0.5,
+		                0.5, 0.5, 0.5,     0.5, 0.5, 0.5,
+		                0.5, 0.5, -0.5,    0.5, 0.5, 0.5,
+
+		                // Left
+		                -0.5, 0.5, 0.5,    0.75, 0.25, 0.5,
+		                -0.5, -0.5, 0.5,   0.75, 0.25, 0.5,
+		                -0.5, -0.5, -0.5,  0.75, 0.25, 0.5,
+		                -0.5, 0.5, -0.5,   0.75, 0.25, 0.5,
+
+		                // Right
+		                0.5, 0.5, 0.5,    0.25, 0.25, 0.75,
+		                0.5, -0.5, 0.5,   0.25, 0.25, 0.75,
+		                0.5, -0.5, -0.5,  0.25, 0.25, 0.75,
+		                0.5, 0.5, -0.5,   0.25, 0.25, 0.75,
+
+		                // Front
+		                0.5, 0.5, 0.5,    1.0, 0.0, 0.15,
+		                0.5, -0.5, 0.5,    1.0, 0.0, 0.15,
+		                -0.5, -0.5, 0.5,    1.0, 0.0, 0.15,
+		                -0.5, 0.5, 0.5,    1.0, 0.0, 0.15,
+
+		                // Back
+		                0.5, 0.5, -0.5,    0.0, 1.0, 0.15,
+		                0.5, -0.5, -0.5,    0.0, 1.0, 0.15,
+		                -0.5, -0.5, -0.5,    0.0, 1.0, 0.15,
+		                -0.5, 0.5, -0.5,    0.0, 1.0, 0.15,
+
+		                // Bottom
+		                -0.5, -0.5, -0.5,   0.5, 0.5, 1.0,
+		                -0.5, -0.5, 0.5,    0.5, 0.5, 1.0,
+		                0.5, -0.5, 0.5,     0.5, 0.5, 1.0,
+		                0.5, -0.5, -0.5,    0.5, 0.5, 1.0,
+					];
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verticies), gl.STATIC_DRAW);
+                    
+                    this.ibuffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ibuffer);
+
+                    this.indexOrder = 
+                    [
+                       // Top
+		                0, 1, 2,
+		                0, 2, 3,
+
+		                // Left
+		                5, 4, 6,
+		                6, 4, 7,
+
+		                // Right
+		                8, 9, 10,
+		                8, 10, 11,
+
+		                // Front
+		                13, 12, 14,
+		                15, 14, 12,
+
+		                // Back
+		                16, 17, 18,
+		                16, 18, 19,
+
+		                // Bottom
+		                21, 20, 22,
+		                22, 20, 23
+                    ];
+		            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint8Array(this.indexOrder),
+		            gl.STATIC_DRAW);
+					// Link the buffer with the vertex array
+				
+					// Each object has the ability to specify its own location and rotation. Idea is to
+					// link these two variables with the static variables transform and rotation. By default
+					// the gem will spawn in the middle of the screen with no rotation unless specified otherwise
+					this.loc = [0.0,0.0,0.0];
+					this.rot = [0.0,0.0,0.0];
+
+                    // Specify scaling here and it will be sent over to the scale uniform
+                    this.sca = [0.4,0.4,0.4];
+				
+				}
+			
+				render(program)
+				{
+					// Telling webGL which buffer 
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+					//First we bind the buffer for triangle 1. Formating the attribute to read the buffer
+					var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+					var size = 3;          // 2 components per iteration (position and color)
+					var type = gl.FLOAT;   // the data is 32bit floats
+					var normalize = false; // don't normalize the data
+					var stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element     // 0 = move forward size * sizeof(type) each iteration to get the next position
+					var offset = 0;        // start at the beginning of the buffer
+					gl.enableVertexAttribArray(positionAttributeLocation);
+					gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+					//Now we have to do this for color
+					var colorAttributeLocation = gl.getAttribLocation(program,"vert_color");
+					//We don't have to bind because we already have the correct buffer bound.
+					size = 3;
+					type = gl.FLOAT;
+					normalize = false;
+					stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
+					offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
+					gl.enableVertexAttribArray(colorAttributeLocation);
+					gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
+
+					// Setting our state variables (uniforms) before we draw
+					// We get reference of the uniforms using getUniformLocation
+					var tranLoc  = gl.getUniformLocation(program,'transform');
+					// uniform3floatvector
+					// Now pass the objects location and translation (loc and rot) over to the uniforms.
+					// If rot changes, rotation will know about it. 
+					gl.uniform3fv(tranLoc,new Float32Array(this.loc));
+					var thetaLoc = gl.getUniformLocation(program,'rotation');
+					gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
+
+                    var scale = gl.getUniformLocation(program,'scale');
+                    gl.uniform3fv(scale,new Float32Array(this.sca));
+				
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ibuffer);
+					// Instead of draw arrays
+		            gl.drawElements(gl.TRIANGLES,this.indexOrder.length,gl.UNSIGNED_BYTE,0);
+		 
+				 }
+			}
+		</script>
+
+        <script>
+			// Our render loop
+            function loop()
+		    {
+			    // Clear -> Update -> Render
+			    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+				m.myCubes[0].rot[0] -= 0.005;
+                m.myCubes[0].rot[1] -= 0.005;
+				m.myCubes[0].render(m.myWEBGL.program);
+            
+			    requestAnimationFrame(loop);	// Allows us to loop this function every certain amount of frames
+		    }   
+
+            class main
+            {
+                constructor()
+                {
+                    // Calling this will run the webgl setup for us automatically
+				    this.myWEBGL = new WebGL_Interface();
+				    // will carry all of our objects
+				    this.myCubes = [];
+
+					// Start by setting up the three fixed  gems along with their location
+					// Their rotation will be handled in the render loop
+                    
+					
+					// Finally push all three gems to the list
+				    this.myCubes.push(new Cube()); 
+					
+                }
+
+                buttonHandler(event)
+                {
+                    console.log(event.innerHTML);
+                    switch(event.innerHTML)
+                    {
+                        case "Small":
+                            this.myCubes[0].sca = [0.4,0.4,0.4];
+                            break;
+                        case "Medium":
+                            this.myCubes[0].sca = [0.6,0.6,0.6];
+                            break;
+                        case "Large":
+                            this.myCubes[0].sca = [0.8,0.8,0.8];
+                            break;
+                    }
+
+                }
+
+				static buttonHandle()
+				{
+					// If the user left clicks then spawn a new gem. Its default location
+					// will be in the middle of the screen and its direction will be handled
+					// in the render loop
+                    m.buttonHandler(this);
+					
+				}
+            }
+        </script>
+    </head>
+    <body>
+        <h1 style="color: blueviolet;">Placement Lab!</h1>
+
+        <canvas id="myCanvas" width="600" height="600" style="border: 1px solid #000;">
+            No canvas for you buddy
+        </canvas>
+
+        <div>
+            <button id="Small">Small</button>
+            <button id="Medium">Medium</button>
+            <button id="Large">Large</button>
+        </div>
+        
+        <script>
+			// Our canvas and context variables
+            var canvas = document.getElementById("myCanvas");
+            var gl = canvas.getContext("webgl");
+
+			// Instance of main/driver code
+            var m = new main();
+
+            requestAnimationFrame(loop);
+
+			// Add an event listener to canvas so that when the user
+			// left clicks, a new gem will spawn
+			
+
+            var small = document.getElementById("Small");
+            small.addEventListener("click",main.buttonHandle);
+            var medium = document.getElementById("Medium");
+            medium.addEventListener("click",main.buttonHandle);
+            var large = document.getElementById("Large");
+            large.addEventListener("click",main.buttonHandle);
+
+        </script>
+
+    </body>
+</html>
