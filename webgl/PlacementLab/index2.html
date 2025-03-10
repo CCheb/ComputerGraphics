@@ -193,23 +193,24 @@
 					// the gem will spawn in the middle of the screen with no rotation unless specified otherwise
 					this.loc = [0.0,0.0,0.0];
 					this.rot = [0.0,0.0,0.0];
-					// push two random numbers -1,1. Think of the unit circle and how 
-					// simply specifying -1 or 1 and anything in between for the x and y 
-					// will give you a unique direction. We want our object to go in a random
-					// direction in 360 degrees.
-					this.dir = [0,0];
+					// push two random numbers -1,1
+					this.vel = [0,0];
+				
+					// Generate a random axis and direction
+					// 0 == X, 1 == Y, 2 == Diagonal
+					this.dir = Math.floor(Math.random() * 3);
+				
+					// s. == sign (sX == sign of X)
+					// 0 == positive, 1 == negative
+					this.sX = Math.floor(Math.random() * 2);
+					this.sY = Math.floor(Math.random() * 2);
 				
 				}
 			
 				render(program)
 				{
-					// We multiply the direction by a scalar which acts as the speed 
-					// so that it doesnt move as fast. You can also consider dir to be velocity
-					// since velocity specifies direction as well
-					// Some gems will move very slowly while others will move slightly faster
-					// this is due to choosing a random value between -1 and 1 for the dir
-					this.loc[0] += (this.dir[0] * 0.009);
-					this.loc[1] += (this.dir[1] * 0.009);
+					this.loc[0] += this.vel[0];
+					this.loc[1] += this.vel[1];
 
 					// Telling webGL which buffer 
 					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
@@ -265,13 +266,67 @@
 				m.myGems[1].rot[0]-= .008;	// Bottom left rotates x
 				m.myGems[2].rot[2]-= .008;	// Bottom right rotates z
 
-				// Make sure to render them both the three static objects and any gems
-				// spawned from left clicks
-				for(let i = 0; i < m.myGems.length; i++)
+				// Make sure to render them
+				for(let i = 0; i < 3; i++)
 					m.myGems[i].render(m.myWEBGL.program);
+
+				// From here we can now focus on the objects that are spawned by clicks
+				// each Gem has direction variables that allow it to travel in a random direction
+			    for(var i = 3; i < m.myGems.length; i++)	
+			    {
+			    	// dir defines the axis to go (0 == x, y == 1, 2 == diagonal)
+					if(m.myGems[i].dir == 0)
+					{
+						// Once the axis is known, we check whether its going in the positive
+						// or negative direction (0 == postive, 1 == negative)
+						if(m.myGems[i].sX == 0)
+							m.myGems[i].loc[0] += 0.008;
+						else
+							m.myGems[i].loc[0] -= 0.008;
+					}
+					else if(m.myGems[i].dir == 1)
+					{
+						if(m.myGems[i].sY == 0)
+							m.myGems[i].loc[1] += 0.008;
+						else
+							m.myGems[i].loc[1] -= 0.008;
+					}
+					else
+					{
+						// Diagonally we need to check 4 unique directions and we do that
+						// by checking the signs
+						if(m.myGems[i].sX == 0 && m.myGems[i].sY == 0)
+						{
+							m.myGems[i].loc[0] += 0.008;
+							m.myGems[i].loc[1] += 0.008;
+						}
+						else if(m.myGems[i].sX == 0 && m.myGems[i].sY == 1)
+						{
+							m.myGems[i].loc[0] += 0.008;
+							m.myGems[i].loc[1] -= 0.008;
+						}
+						else if(m.myGems[i].sX == 1 && m.myGems[i].sY == 0)
+						{
+							m.myGems[i].loc[0] -= 0.008;
+							m.myGems[i].loc[1] += 0.008;
+						}
+						else
+						{
+							m.myGems[i].loc[0] -= 0.008;
+							m.myGems[i].loc[1] -= 0.008;
+						}
+					}
+			    	// Know that loc and rot are linked with the static variables transform and rotation
+					// changing them will reflect changes to the vertex shader
+
+					// Finally we render each of the objects one by one
+			    	m.myGems[i].render(m.myWEBGL.program);
+			    }
             
 			    requestAnimationFrame(loop);	// Allows us to loop this function every certain amount of frames
 		    }   
+
+
 
             class main
             {
@@ -296,6 +351,8 @@
 				    this.myGems.push(top); 
 					this.myGems.push(bLeft);
 					this.myGems.push(bRight);
+
+				    
                 }
 
 				static canvasHandle(event)
@@ -303,10 +360,7 @@
 					// If the user left clicks then spawn a new gem. Its default location
 					// will be in the middle of the screen and its direction will be handled
 					// in the render loop
-					var temp = new Gem();
-					temp.dir[0] = Math.random() * 2 - 1;
-					temp.dir[1] = Math.random() * 2 - 1;
-					m.myGems.push(temp);
+					m.myGems.push(new Gem());
 				}
             }
         </script>
