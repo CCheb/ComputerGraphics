@@ -2,22 +2,26 @@ class Transform
 {
 	constructor()
 	{
-		// Isnt this the same as the loc and rot we had in the gems? If
-		// so then why do this here and not in the vertex shader
-		this.forward = [0,0,1];
-		this.right = [1,0,0];
-		this.up = [0,1,0];
+		// These are three vectors that are always gonna be pointing in the direction of where
+		// the object is facing
+		this.forward = [0,0,1];	// Pointing in the +Z
+		this.right = [1,0,0];	// Pointing in the +X
+		this.up = [0,1,0];		// Pointing in the +Y
 	}
 
 	doRotations(RotAngles)
 	{
 		// All this function does is calculate the rotation for the object by combining
 		// x, y, and z rotations into one R matrix which contains the rotation information 
-		// for all the axies
+		// for all the axies. We are doing this math because these vectors are kept in the
+		// cpu and only help in telling us where the object is facing. At first the object is facing
+		// in a way where these vectors are in their default positions and when we rotate the object
+		// we also want to rotate these vectors so that they are still "attached" to the object, thus
+		// giving us a sense of direction
 		this.xRot = [
 					[1,0,0,0],
-					[0,Math.cos(RotAngles[0]),-1*Math.sin(RotAngles[0]),0],
-					[0,Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
+					[0,Math.cos(RotAngles[0]),Math.sin(RotAngles[0]),0],
+					[0,-1*Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
 					[0,0,0,1]
 				];		
 		this.yRot = [
@@ -27,8 +31,8 @@ class Transform
 				[0,0,0,1]	
 				];
 		this.zRot = [
-					[Math.cos(RotAngles[2]),-1*Math.sin(RotAngles[2]),0,0],
-					[Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
+					[Math.cos(RotAngles[2]),Math.sin(RotAngles[2]),0,0],
+					[-1*Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
 					[0,0,1,0],
 					[0,0,0,1]
 				]
@@ -82,12 +86,18 @@ class GameObject
 		// moving or rotating. We dont want to immediately apply the new
 		// rotation and movement to the real object just yet. This so that we
 		// prevent screen jitters when colliding with a solid
+
+		// If you take all the rest of the code out, Move simply updates
+		// the loc and rot of the object with velocity and angVelocity respectively
+		// where loc and rot are synced with the transform and rotation uniforms!
 		var tempP = [0,0,0];
 		// Changed from 4 to 3 since it will go out of bounds
 		for (var i = 0;  i < 3; i++){
 			tempP[i] = this.loc[i];
-			tempP[i] += this.velocity[i];
-			this.rot[i] += this.angVelocity[i];
+			tempP[i] += this.velocity[i];	// This is where loc and velocity meet! 
+			// Yes rot has values other than 0 and the vertex shader stores that value in rotate
+			// its not until angVelocity adds something other than 0 to rot that the object will rotate!
+			this.rot[i] += this.angVelocity[i];		// This is where rot and angVelocity meet!
 		}
 		// If its not a trigger object (Its a solid)
 		if(!this.isTrigger){
@@ -179,7 +189,7 @@ class GameObject
 	
 	Render(program)
 	{
-	   // Telling webGL which buffer 
+	   // Telling webGL which buffer. This is important for when we will work with multiple buffers
 	   gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	   
 	   //First we bind the buffer for triangle 1. Formating the attribute to read the buffer
@@ -199,7 +209,7 @@ class GameObject
 	   type = gl.FLOAT;
 	   normalize = false;
 	   stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
-	   offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
+	   offset = 3*Float32Array.BYTES_PER_ELEMENT;	//size of the offset. In this case grab last three of the set of 6
 	   gl.enableVertexAttribArray(colorAttributeLocation);
 	   gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
 	   
@@ -213,10 +223,10 @@ class GameObject
 	   var thetaLoc = gl.getUniformLocation(program,'rotation');
 	   gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
 	   
-	   
+	   // Before it was a count of 12
 	   var primitiveType = gl.TRIANGLES;
 	   offset = 0;
-	   var count = 12;
+	   var count = 6;
 	   gl.drawArrays(primitiveType, offset, count);
 	}
 }
@@ -250,63 +260,89 @@ class Triangle1 extends GameObject
 		// We now use this prototype and instantiate objects with at different
 		// locations with the help of the translation matrix.
 		this.vertices =
-		[	
-		   // Front face (red)
-			-.5,-.5,0,0,0,0,
-			.5,-.5,0,1,0,0,
-			0,.5,0,1,0,0,
-		   // Bottom face (green)
-			-.5,-.5,0,0,1,0,
-			0,0,-.5,0,1,0,
-			.5,-.5,0,0,1,0,
-		   // Left face (blue)
-			0,0,-.5,0,0,1,
-			.5,-.5,0,0,0,1,
-			0,.5,0,0,0,1,
-		   // Right face (yellow)
-			0,.5,0,1,1,0,
-			0,0,-.5,1,1,0,
-			-.5,-.5,0,1,1,0
-	   ];
+		[	//Top wing
+			-0.08,0.1,0, 1,0,0,
+			0.1,0,0,	0,1,0,
+			0,0,0,		0,0,1,
+			//Bottom wing
+			0,0,0,		0,0,1,
+			0.1,0,0,	0,1,0,
+			-0.08,-0.1,0,	1,0,0
+		   
+	   	];
 	   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
 	   // These two variables allow us to set the location and rotation of a particular
 	   // Triangle1 instance. By default the instance will be positioned at the origin.
-	   this.loc = [0.0,0.0,0.0];
-	   this.rot = [0.0,0.0,0.0]; 	// Rotation will be altered in the render loop
+	   // No point in specifying a loc and a rot here since its already declared for us in
+	   // GameObject
+	   //this.loc = [0.0,0.0,0.0];
+	   //this.rot = [0.0,0.0,0.0]; 	// Rotation will be altered in the render loop
 	   // We set the rotation here so that on load the front face will show
 	}
 	//Again this could be inherited ... but not always...not all objects
 	
 	Update()
 	{
+		// A and D specify the ammount of rotation. The idea is that
+		// pressing any of these keys will rotate the object 
 		console.log('Triangle override');
 		if(m.CheckKey("A"))
 		{
-			this.angVelocity = [0,.1,0];
+			// Specify how fast to rotate and in which axis
+			this.angVelocity = [0,0,0.1];
 
 		}
 		else if(m.CheckKey("D"))
 		{
-			this.angVelocity = [0,-.1,0];
+			this.angVelocity = [0,0,-0.1];
 		}
 		else
 		{
+			// Fail safe in the case that when we press either A or D
+			// that the object doesnt keep rotating. This is because pressing
+			// A or D will assign a list to angVelocity which will cause
+			// rot in move to constantly rotate by that ammount. In short
+			// if we are not pressing anything, we dont want the object to keep
+			// rotating, so we make sure to set angVelocity which updates this.rot
+			// to change/rotate
 			this.angVelocity = [0,0,0];
 		}
 		//Aquire forward vector
-		if(m.CheckKey("W"))
+		if(m.CheckKey("W"))		// Moving forwards
 		{
 			// pass current rotation into rotation
+			// This is so that the direction vectors rotate an equal ammount to what the
+			// the object is rotating! What ever ammount we are rotating, we also want to rotate
+			// the direction vectors by that ammount!
+			// Think of this as updating the direction vectors to be facing in the right directions
+			// according to how the object has been rotated the in the previous code.
 			this.tranform.doRotations(this.rot);
-			var tv = this.tranform.forward;
+			var tv = this.tranform.right;		// Grabbing the forward vector.
 			for(let i = 0; i < 3; i++)
 			{
-				this.velocity[i] = tv[i] * 0.05;
+				// Depending on the direction vector chosen by tv, the velocity will update
+				// only a particular axis, the rest will be 0. For example choosing forward
+				// for tv will only update the z spot in velocity, the rest will be zero!
+				this.velocity[i] = tv[i] * 0.03;	
+			}
+
+		}
+		else if(m.CheckKey("S"))	// Moving backwards
+		{
+			this.tranform.doRotations(this.rot);
+			var tv = this.tranform.right;		// Grabbing the forward vector.
+			for(let i = 0; i < 3; i++)
+			{
+				// Depending on the direction vector chosen by tv, the velocity will update
+				// only a particular axis, the rest will be 0. For example choosing forward
+				// for tv will only update the z spot in velocity, the rest will be zero!
+				this.velocity[i] = tv[i] * -0.03;	
 			}
 
 		}
 		else
 		{
+			// Same fail-safe idea to the rotations. We dont want to keep moving after pressing w.
 			this.velocity = [0,0,0];
 		}
 		this.Move();
