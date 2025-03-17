@@ -86,7 +86,7 @@ class GameObject
 		// Changed from 4 to 3 since it will go out of bounds
 		for (var i = 0;  i < 3; i++){
 			tempP[i] = this.loc[i];
-			tempP[i] = this.velocity[i];
+			tempP[i] += this.velocity[i];
 			this.rot[i] += this.angVelocity[i];
 		}
 		// If its not a trigger object (Its a solid)
@@ -111,12 +111,13 @@ class GameObject
 					clear = false;
 				}
 			}
+			if(clear){
+				// If the solid object did not collide with anything then simply update its location
+				// Be careful of shallow copies!
+				this.loc = tempP;
+			}
 		}
-		if(clear){
-			// If the solid object did not collide with anything then simply update its location
-			// Be careful of shallow copies!
-			this.loc = tempP;
-		}
+		
 		else{ //this should be right 
 			this.loc = tempP;
 			for(var so in m.Solid){
@@ -175,11 +176,49 @@ class GameObject
 	{
 		console.error(this.name +" update() is NOT IMPLEMENTED!");
 	}
-	Render(program) //needs this.program
+	
+	Render(program)
 	{
-		//could possibly impliment render here
-		console.error(this.name + " render() is NOT IMPLEMENTED!");
-	}	
+	   // Telling webGL which buffer 
+	   gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+	   
+	   //First we bind the buffer for triangle 1. Formating the attribute to read the buffer
+	   var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+	   var size = 3;          // 2 components per iteration (position and color)
+	   var type = gl.FLOAT;   // the data is 32bit floats
+	   var normalize = false; // don't normalize the data
+	   var stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element     // 0 = move forward size * sizeof(type) each iteration to get the next position
+	   var offset = 0;        // start at the beginning of the buffer
+	   gl.enableVertexAttribArray(positionAttributeLocation);
+	   gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+	   
+	   //Now we have to do this for color
+	   var colorAttributeLocation = gl.getAttribLocation(program,"vert_color");
+	   //We don't have to bind because we already have the correct buffer bound.
+	   size = 3;
+	   type = gl.FLOAT;
+	   normalize = false;
+	   stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
+	   offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
+	   gl.enableVertexAttribArray(colorAttributeLocation);
+	   gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
+	   
+	   // Setting our state variables (uniforms) before we draw
+	   // We get reference of the uniforms using getUniformLocation
+	   var tranLoc  = gl.getUniformLocation(program,'transform');
+	   // uniform3floatvector
+	   // Now pass the objects location and translation (loc and rot) over to the uniforms.
+	   // If rot changes, rotation will know about it. 
+	   gl.uniform3fv(tranLoc,new Float32Array(this.loc));
+	   var thetaLoc = gl.getUniformLocation(program,'rotation');
+	   gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
+	   
+	   
+	   var primitiveType = gl.TRIANGLES;
+	   offset = 0;
+	   var count = 12;
+	   gl.drawArrays(primitiveType, offset, count);
+	}
 }
 
 
@@ -193,4 +232,98 @@ class Demo extends GameObject
 
 	}
 	
+}
+
+// Two classes: Triangle1 and Triangle2. Both define different shapes
+class Triangle1 extends GameObject
+{
+	constructor()
+	{
+		super();
+		this.buffer=gl.createBuffer();
+		// Creating our buffer for the shape. Know that all unique instances will
+		// have its own buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		//Now we want to add color to our vertices information.
+		// Here we define the prototype of the shape. The idea is to create
+		// shapes where their origin is at 0,0,0, these are our prototypes
+		// We now use this prototype and instantiate objects with at different
+		// locations with the help of the translation matrix.
+		this.vertices =
+		[	
+		   // Front face (red)
+			-.5,-.5,0,0,0,0,
+			.5,-.5,0,1,0,0,
+			0,.5,0,1,0,0,
+		   // Bottom face (green)
+			-.5,-.5,0,0,1,0,
+			0,0,-.5,0,1,0,
+			.5,-.5,0,0,1,0,
+		   // Left face (blue)
+			0,0,-.5,0,0,1,
+			.5,-.5,0,0,0,1,
+			0,.5,0,0,0,1,
+		   // Right face (yellow)
+			0,.5,0,1,1,0,
+			0,0,-.5,1,1,0,
+			-.5,-.5,0,1,1,0
+	   ];
+	   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+	   // These two variables allow us to set the location and rotation of a particular
+	   // Triangle1 instance. By default the instance will be positioned at the origin.
+	   this.loc = [0.0,0.0,0.0];
+	   this.rot = [0.0,0.0,0.0]; 	// Rotation will be altered in the render loop
+	   // We set the rotation here so that on load the front face will show
+	}
+	//Again this could be inherited ... but not always...not all objects
+	
+	Update()
+	{
+		console.log('Triangle override');
+		if(m.CheckKey("A"))
+		{
+			this.angVelocity = [0,.1,0];
+
+		}
+		else if(m.CheckKey("D"))
+		{
+			this.angVelocity = [0,-.1,0];
+		}
+		else
+		{
+			this.angVelocity = [0,0,0];
+		}
+		//Aquire forward vector
+		if(m.CheckKey("W"))
+		{
+			// pass current rotation into rotation
+			this.tranform.doRotations(this.rot);
+			var tv = this.tranform.forward;
+			for(let i = 0; i < 3; i++)
+			{
+				this.velocity[i] = tv[i] * 0.05;
+			}
+
+		}
+		else
+		{
+			this.velocity = [0,0,0];
+		}
+		this.Move();
+		// now implement override functions for collision
+		
+	}
+
+	//virtural functions 
+	//colide with a phyical object and it stops me 
+	OnCollisionEnter(other){
+
+	}
+
+	//colide with a object and a event happens
+	OnTriggerEnter(other){
+
+	}
+	
+
 }

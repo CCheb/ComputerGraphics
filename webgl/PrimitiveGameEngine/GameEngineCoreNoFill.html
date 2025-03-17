@@ -109,12 +109,17 @@
 
 				// Setting up the input keys. False at first since we are not pressing anything
 				// when loadin up
+				/*
 				this.Keys["W"] = false;
 				this.Keys["S"] = false;
 				this.Keys["A"] = false;
 				this.Keys["D"] = false;
 				this.Keys[' '] = false;
+				*/
 				
+				
+				// Game engine will update and render automatically
+				this.CreateObject(1,Triangle1,[0,0,0],[0,0,0]);
 
 				// Allows us to obtain a fully functional webgl program! Treat it like a black box
 				this.myWEBGL = new WebGL_Interface();
@@ -238,18 +243,20 @@
 			{
 				//check if key code is in dictionary. If yes, the return it
 				if(k in this.Keys){
-					return true; // Was this.Key[k] which will be error
+					return this.Keys[k]; // Was this.Key[k] which will be error
 				}
 				return false;
 			}
 
 			KeyDown(event)
 			{
+				this.Keys[String.fromCharCode(event.keyCode)] = true;
 				// Checking for a pressed key
 				// The idea is to use the contents of this.Keys as signals of when
 				// a particular key is pressed. If 'w' is pressed for example then
 				// 'w' in this.Keys will be true and the player will move.
 				// Check if key is the right key first
+				/*
 				var strKeyCode = String.fromCharCode(event.keyCode);
 				if(this.CheckKey(strKeyCode))
 				{
@@ -259,15 +266,18 @@
 				}
 				else
 					console.log("Wrong key press: " + strKeyCode);
-				
+				*/
 				                  
 			}
 
 			KeyUp(event)
 			{
+				this.Keys[String.fromCharCode(event.keyCode)] = false;
+
 				// Checking for a released key
 				// As soon as we release the key, KeyUp will be fired and will set the status of that
 				// key in this.Keys to false meaning that the key is not being pressed anymore
+				/*
 				var strKeyCode = String.fromCharCode(event.keyCode);
 				if(this.CheckKey(strKeyCode))
 				{
@@ -277,6 +287,7 @@
 				}
 				else
 					console.log("Wrong key press: " + strKeyCode);
+				*/
 			}
 			
 			MouseClick(event)
