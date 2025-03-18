@@ -66,18 +66,20 @@ class GameObject
 {
 	// GameObject acts as an abstract class for every object in our game
 	// so it contains general information that EVERY object will have
-	constructor() 
+	constructor(count) 
 	{
 		this.loc = [0,0,0];
 		this.rot = [0,0,0];
 		this.isTrigger = false;
-		this.collissionRadius = 0.1; //this by default may be too large
+		this.cRadX = 0.1; 
+		this.cRadY = 0.1;
 		this.velocity = [0,0,0];
 		this.angVelocity = [0,0,0];
 		this.name = "Default";
 		this.id = 0;
 		this.tranform = new Transform();
 		this.prefab;
+		this.triangleCount = count;
 	}
 
 	//assuming that velocity is set correctly 
@@ -92,7 +94,7 @@ class GameObject
 		// where loc and rot are synced with the transform and rotation uniforms!
 		var tempP = [0,0,0];
 		// Changed from 4 to 3 since it will go out of bounds
-		for (var i = 0;  i < 3; i++){
+		for (var i = 0; i < 3; i++){
 			tempP[i] = this.loc[i];
 			tempP[i] += this.velocity[i];	// This is where loc and velocity meet! 
 			// Yes rot has values other than 0 and the vertex shader stores that value in rotate
@@ -102,24 +104,30 @@ class GameObject
 		// If its not a trigger object (Its a solid)
 		if(!this.isTrigger){
 			// Assume that there is nothing in the way
-			var clear = true;	// Would probably need this outside
+			var clear = true;	
 			for(var so in m.Solid)		// Remember that m is a global variable!
 			{ 
-				// While looping through each solid object we use tempP to check if there is a collision with every other
-				// solid. Keep in mind that we would need to implement a way to ignore the object associated with temp
-				if(m.CheckCollision(tempP, this.collissionRadius, m.Solid[so].loc, m.Solid[so].collissionRadius))//make sure m.solid does not equal this object
+				if(this != m.Solid[so])
 				{
-					// If a collision is encounterd 
-					// These two OnCollissionEnters are the same
-					OnCollisionEnter(m.Solid[so]);
-					try
+					// While looping through each solid object we use tempP to check if there is a collision with every other
+					// solid. Keep in mind that we would need to implement a way to ignore the object associated with temp
+					if(m.CheckCollision(tempP, this.cRadX, this.cRadY, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY))//make sure m.solid does not equal this object
 					{
-						// Why do a try in the first place?
-						m.Solid[so].OnCollisionEnter(this);
+						// If a collision is encounterd 
+						// These two OnCollissionEnters are the same
+						this.OnCollisionEnter(m.Solid[so]);
+						try
+						{
+							// We are now checking the other way around
+							// Its in a try in the case that the collision enter right
+							// before caused m.Solid[so] to be deleted
+							m.Solid[so].OnCollisionEnter(this);
+						}
+						catch{}
+						clear = false;
 					}
-					catch{}
-					clear = false;
 				}
+				
 			}
 			if(clear){
 				// If the solid object did not collide with anything then simply update its location
@@ -130,10 +138,11 @@ class GameObject
 		
 		else{ //this should be right 
 			this.loc = tempP;
+			//console.log("this works");
 			for(var so in m.Solid){
 				// If we already collided with the solid object earlier and it has a OnTriggerEnter then
 				// we can simply store it and use it here
-				if(m.CheckCollision(tempP, this.collissionRadius,m.Solid[so].loc,m.Solid[so].collissionRadius)){
+				if(m.CheckCollision(tempP, this.cRadX, this.cRadY, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY)){
 					// What if the Solid doenst have an OnTriggerEnter
 					this.OnTriggerEnter(m.Solid[so]);
 					try
@@ -148,13 +157,13 @@ class GameObject
 
 			}
 			// Now check if 
-			for(var so in m.Trigger){ //this should be correct. It is trying to check for trigger objects insted of solid objects
-				if(this != m.Trigger[so]){
-					if(m.CheckCollision(tempP, this.collissionRadius,m.Trigger[so].loc,m.Trigger[so].collissionRadius)){
-						this.OnTriggerEnter(m.Solid[so]);
+			for(var to in m.Trigger){ //this should be correct. It is trying to check for trigger objects insted of solid objects
+				if(this != m.Trigger[to]){
+					if(m.CheckCollision(tempP, this.cRadX, this.cRadY, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY)){
+						this.OnTriggerEnter(m.Trigger[to]);
 						try
 						{
-							m.Trigger[so].OnTriggerEnter(this);
+							m.Trigger[to].OnTriggerEnter(this);
 						}
 						catch
 						{
@@ -162,8 +171,6 @@ class GameObject
 						}
 					}
 				}
-				
-				
 			}
 		}
 	} 
@@ -226,22 +233,56 @@ class GameObject
 	   // Before it was a count of 12
 	   var primitiveType = gl.TRIANGLES;
 	   offset = 0;
-	   var count = 6;
+	   var count = this.triangleCount;
 	   gl.drawArrays(primitiveType, offset, count);
 	}
 }
 
-
-//shape extends game object 
-
-class Demo extends GameObject
+class Bullet extends GameObject
 {
 	constructor()
 	{
-		super();
+		super(6);
+		this.name = "Bullet";
+		this.isTrigger = true;
+		this.buffer=gl.createBuffer();
+		this.velocity = [0.003,0.003,0];
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		this.vertices =
+		[	//Top wing
+			-0.1,0.1,0, 	1,0,0,
+			0.1,0.1,0,		0,1,0,
+			-0.1,-0.1,0,	0,0,1,
+			//Bottom wing
+			0.1,0.1,0,		0,0,1,
+			0.1,-0.1,0,		0,1,0,
+			-0.1,-0.1,0,	1,0,0
+		   
+	   	];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+	}
+
+	Update()
+	{
+		//this.velocity = 0.003;
+		this.Move();
+	}
+
+	OnCollisionEnter(other)
+	{
+		if(other.name == "Wall" || other.name == "Enemy")
+		{
+			console.log("Bullet collided with something")
+			m.DestroyObject(this.id);
+
+
+		}
+		else if(other.name == "Player")
+			console.log("Bullet collided with player!");
 
 	}
-	
 }
 
 // Two classes: Triangle1 and Triangle2. Both define different shapes
@@ -249,7 +290,8 @@ class Triangle1 extends GameObject
 {
 	constructor()
 	{
-		super();
+		super(6);
+		this.name = "Player";
 		this.buffer=gl.createBuffer();
 		// Creating our buffer for the shape. Know that all unique instances will
 		// have its own buffer
@@ -261,13 +303,13 @@ class Triangle1 extends GameObject
 		// locations with the help of the translation matrix.
 		this.vertices =
 		[	//Top wing
-			-0.08,0.1,0, 1,0,0,
-			0.1,0,0,	0,1,0,
-			0,0,0,		0,0,1,
+			-0.1,0.1,0, 	1,0,0,
+			0.1,0.1,0,		0,1,0,
+			-0.1,-0.1,0,	0,0,1,
 			//Bottom wing
-			0,0,0,		0,0,1,
-			0.1,0,0,	0,1,0,
-			-0.08,-0.1,0,	1,0,0
+			0.1,0.1,0,		0,0,1,
+			0.1,-0.1,0,		0,1,0,
+			-0.1,-0.1,0,	1,0,0
 		   
 	   	];
 	   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
@@ -285,7 +327,6 @@ class Triangle1 extends GameObject
 	{
 		// A and D specify the ammount of rotation. The idea is that
 		// pressing any of these keys will rotate the object 
-		console.log('Triangle override');
 		if(m.CheckKey("A"))
 		{
 			// Specify how fast to rotate and in which axis
@@ -323,7 +364,7 @@ class Triangle1 extends GameObject
 				// Depending on the direction vector chosen by tv, the velocity will update
 				// only a particular axis, the rest will be 0. For example choosing forward
 				// for tv will only update the z spot in velocity, the rest will be zero!
-				this.velocity[i] = tv[i] * 0.03;	
+				this.velocity[i] = tv[i] * 0.01;	
 			}
 
 		}
@@ -336,7 +377,7 @@ class Triangle1 extends GameObject
 				// Depending on the direction vector chosen by tv, the velocity will update
 				// only a particular axis, the rest will be 0. For example choosing forward
 				// for tv will only update the z spot in velocity, the rest will be zero!
-				this.velocity[i] = tv[i] * -0.03;	
+				this.velocity[i] = tv[i] * -0.01;	
 			}
 
 		}
@@ -345,6 +386,32 @@ class Triangle1 extends GameObject
 			// Same fail-safe idea to the rotations. We dont want to keep moving after pressing w.
 			this.velocity = [0,0,0];
 		}
+
+		if(m.CheckKey(" "))
+		{
+			var b = false;
+			for(var so in m.Trigger)
+			{
+				if("Bullet" == m.Trigger[so].name)
+				{
+					b = true;
+					break;
+				}
+			}
+
+			if(!b)
+			{
+				// Make sure to change the radius of x and y
+				console.log("Bullet Fired!");
+				m.CreateObject(2, Bullet, [this.loc[0]+0.1,this.loc[1]+0.1,0], this.rot,0.1,0.1);
+				console.log("Check");
+			}
+		}
+		else
+		{
+			b = false;
+		}
+
 		this.Move();
 		// now implement override functions for collision
 		
@@ -353,13 +420,175 @@ class Triangle1 extends GameObject
 	//virtural functions 
 	//colide with a phyical object and it stops me 
 	OnCollisionEnter(other){
-
+		console.log("Player just collided with " + other.name);
 	}
 
 	//colide with a object and a event happens
 	OnTriggerEnter(other){
-
+		console.log("Player just triggered " + other.name);
 	}
 	
 
+}
+
+class Wall extends GameObject
+{
+	constructor()
+	{
+		super(6);
+		this.name = "Wall";
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices =
+		[	//Top wing
+			-0.03,1,0, 	1,0,0,
+			0.03,1,0,	0,1,0,
+			-0.03,-1,0,	0,0,1,
+			//Bottom wing
+			0.03,1,0,	0,0,1,
+			0.03,-1,0,	0,1,0,
+			-0.03,-1,0,	1,0,0
+		   
+	   	];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+	}
+
+	Update()
+	{
+		//this.Move();
+	}
+
+	OnCollisionEnter(other){
+		console.log("Wall just collided with " + other.name);
+	}
+}
+
+
+
+class Coin extends GameObject
+{
+	constructor()
+	{
+		super(24);
+		this.name = "Coin";
+		this.isTrigger = true;
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices =
+		[	// Front face
+			0,0.1,-0.05, 		0.988,0.584,0.050,
+			-0.1,-0.1,-0.05,		0.988,0.584,0.050,
+			0.1,-0.1,-0.05,		0.988,0.584,0.050,
+
+			// Left side
+			0,0.1,-0.05, 		0.988,0.584,0.050,
+			-0.1,-0.1,0.05,	0.988,0.584,0.050,
+			-0.1,-0.1,-0.05,	0.988,0.584,0.050,
+
+			0,0.1,-0.05, 		0.988,0.584,0.050,
+			0,0.1,0.05, 		0.988,0.584,0.050,
+			-0.1,-0.1,0.05,	0.988,0.584,0.050,
+
+			// right side
+			0,0.1,-0.05, 		0.988,0.584,0.050,
+			0,0.1,0.05, 		0.988,0.584,0.050,
+			0.1,-0.1,0.05, 	0.988,0.584,0.050,
+
+			0,0.1,-0.05, 		0.988,0.584,0.050,
+			0.1,-0.1,-0.05, 	0.988,0.584,0.050,
+			0.1,-0.1,0.05, 	0.988,0.584,0.050,
+
+			// Bottom Side
+			-0.1,-0.1,0.05, 	0.988,0.584,0.050,
+			-0.1,-0.1,0.05, 	0.988,0.584,0.050,
+			0.1,-0.1,0.05, 	0.988,0.584,0.050,
+
+			-0.1,-0.1,0.05, 	0.988,0.584,0.050,
+			0.1,-0.1,0.05,		0.988,0.584,0.050,
+			0.1,-0.1,-0.05, 	0.988,0.584,0.050,
+
+			// Back face
+			0,0.1,0.05, 		0.0,0.0,0.0,
+			-0.1,-0.1,0.05,	0.0,0.0,0.0,
+			0.1,-0.1,0.05,	0.0,0.0,0.0
+		   
+	   	];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+		
+	}
+
+	Update()
+	{
+		//this.Move();
+		// rotate in the y axis constantly
+		this.angVelocity = [0,0.008,0];
+		this.Move()
+	}
+
+	OnTriggerEnter(other){
+		console.log("Coin just collided with " + other.name);
+		if(other.name == "Player")
+		{
+			console.log("Coin will delete");
+			m.DestroyObject(this.id);
+		}
+	}
+}
+
+class Enemy extends GameObject
+{
+	constructor()
+	{
+		super(6);
+		this.name = "Enemy"; 
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices =
+		[	//Top wing
+			-0.1,0.1,0, 	1,0,0,
+			0.1,0.1,0,		0,1,0,
+			-0.1,-0.1,0,	0,0,1,
+			//Bottom wing
+			0.1,0.1,0,		0,0,1,
+			0.1,-0.1,0,		0,1,0,
+			-0.1,-0.1,0,	1,0,0
+		   
+	   	];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+		this.velocity = [0.007,0,0];
+		this.sign = 0;
+	}
+
+	Update()
+	{
+		this.Move();
+	}
+
+	OnCollisionEnter(other)
+	{
+		if(other.name == "Wall")
+		{
+			if(this.sign == 0)
+			{
+				this.velocity = [0.007,0,0];
+				this.sign = 1;
+			}
+			else
+			{
+				this.velocity = [-0.007,0,0];
+				this.sign = 0;
+			}
+		}
+		else if(other.name == "Player")
+		{
+			console.log("Player Destroyed!");
+			m.DestroyObject(other.id);
+		}
+	}
 }
