@@ -242,11 +242,15 @@ class Bullet extends GameObject
 {
 	constructor()
 	{
+		// Need to specify the verticie count through the constructor (this could be changed)
 		super(6);
 		this.name = "Bullet";
+		// Bullet is a trigger object
 		this.isTrigger = true;
 		this.buffer=gl.createBuffer();
-		this.velocity = [0.003,0.003,0];
+		// We want to grab the right vector of the player 
+		// So that the bullet is fired in the right direction
+		this.dir;
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		this.vertices =
@@ -266,27 +270,37 @@ class Bullet extends GameObject
 
 	Update()
 	{
-		//this.velocity = 0.003;
+		// Update each of the velocity values of the bullet
+		// by muliplying the right vector by a scalar. The vector
+		// helps give direction and scaling it helps in preserving that
+		// direction
+		for(let i = 0; i < 3; i++)
+		{
+			this.velocity[i] = this.dir[i] * 0.05;	
+		}
+		// Now update bullets movement and check for collisions
 		this.Move();
 	}
 
-	OnCollisionEnter(other)
+	OnTriggerEnter(other)
 	{
+		// Colliding with the Wall or Enemy will destroy the bullet
 		if(other.name == "Wall" || other.name == "Enemy")
 		{
-			console.log("Bullet collided with something")
+			console.log("Bullet collided with " + other.name);
 			m.DestroyObject(this.id);
-
-
+			// Special case for when the bullet collides with the Enemy
+			// Both should be destroyed in this case
+			if(other.name == "Enemy")
+				m.DestroyObject(other.id);
 		}
-		else if(other.name == "Player")
-			console.log("Bullet collided with player!");
+		
 
 	}
 }
 
-// Two classes: Triangle1 and Triangle2. Both define different shapes
-class Triangle1 extends GameObject
+// Player class
+class Player extends GameObject
 {
 	constructor()
 	{
@@ -313,15 +327,8 @@ class Triangle1 extends GameObject
 		   
 	   	];
 	   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
-	   // These two variables allow us to set the location and rotation of a particular
-	   // Triangle1 instance. By default the instance will be positioned at the origin.
-	   // No point in specifying a loc and a rot here since its already declared for us in
-	   // GameObject
-	   //this.loc = [0.0,0.0,0.0];
-	   //this.rot = [0.0,0.0,0.0]; 	// Rotation will be altered in the render loop
-	   // We set the rotation here so that on load the front face will show
+
 	}
-	//Again this could be inherited ... but not always...not all objects
 	
 	Update()
 	{
@@ -330,12 +337,13 @@ class Triangle1 extends GameObject
 		if(m.CheckKey("A"))
 		{
 			// Specify how fast to rotate and in which axis
-			this.angVelocity = [0,0,0.1];
+			// In this case we are rotating along the z-axis
+			this.angVelocity = [0,0,0.06];
 
 		}
 		else if(m.CheckKey("D"))
 		{
-			this.angVelocity = [0,0,-0.1];
+			this.angVelocity = [0,0,-0.06];
 		}
 		else
 		{
@@ -348,35 +356,33 @@ class Triangle1 extends GameObject
 			// to change/rotate
 			this.angVelocity = [0,0,0];
 		}
-		//Aquire forward vector
+		
 		if(m.CheckKey("W"))		// Moving forwards
 		{
-			// pass current rotation into rotation
-			// This is so that the direction vectors rotate an equal ammount to what the
+			// This is so that the direction vectors (front, right, top) rotate an equal ammount to what the
 			// the object is rotating! What ever ammount we are rotating, we also want to rotate
 			// the direction vectors by that ammount!
-			// Think of this as updating the direction vectors to be facing in the right directions
+			// Think of this as updating the direction vectors to be facing in the correct directions
 			// according to how the object has been rotated the in the previous code.
 			this.tranform.doRotations(this.rot);
-			var tv = this.tranform.right;		// Grabbing the forward vector.
+			var tv = this.tranform.right;		// Grabbing the right vector.
 			for(let i = 0; i < 3; i++)
 			{
-				// Depending on the direction vector chosen by tv, the velocity will update
-				// only a particular axis, the rest will be 0. For example choosing forward
-				// for tv will only update the z spot in velocity, the rest will be zero!
+				// The differences between the axies determines the direction for the right vector
+				// We need to preserve these diferences so we multiply each axis of the direction
+				// vector and assign each over to velocity so that the update reflects the player movement
 				this.velocity[i] = tv[i] * 0.01;	
 			}
 
 		}
 		else if(m.CheckKey("S"))	// Moving backwards
 		{
+			// Again update rotation. The direction vectors need to be kept up to date
 			this.tranform.doRotations(this.rot);
-			var tv = this.tranform.right;		// Grabbing the forward vector.
+			var tv = this.tranform.right;		// Grabbing the right vector.
 			for(let i = 0; i < 3; i++)
 			{
-				// Depending on the direction vector chosen by tv, the velocity will update
-				// only a particular axis, the rest will be 0. For example choosing forward
-				// for tv will only update the z spot in velocity, the rest will be zero!
+				// Same idea here just backwards for velocity
 				this.velocity[i] = tv[i] * -0.01;	
 			}
 
@@ -387,11 +393,16 @@ class Triangle1 extends GameObject
 			this.velocity = [0,0,0];
 		}
 
+		// Pressing the space bar will cause the player to shoot a bullet
 		if(m.CheckKey(" "))
 		{
+			// Idea is to first check if a bullet already exists in the play area
+			// if so then we dont shoot another bullet until the one that already exists
+			// is destroyed first. var b helps us with this
 			var b = false;
 			for(var so in m.Trigger)
 			{
+				// Bullet object is considered to be trigger object
 				if("Bullet" == m.Trigger[so].name)
 				{
 					b = true;
@@ -401,33 +412,26 @@ class Triangle1 extends GameObject
 
 			if(!b)
 			{
-				// Make sure to change the radius of x and y
-				console.log("Bullet Fired!");
-				m.CreateObject(2, Bullet, [this.loc[0]+0.1,this.loc[1]+0.1,0], this.rot,0.1,0.1);
-				console.log("Check");
+				// Once we can fire a bullet, we first create it, update the direction vectors
+				// to the latest rotation, send that direction information over to dir and then
+				// let the bullet travel in the direction that the player is pointing
+				var bullet = m.CreateObject(2, Bullet, [this.loc[0],this.loc[1],0], this.rot,0.1,0.1);
+				this.tranform.doRotations(this.rot);
+				bullet.dir = this.tranform.right;
 			}
 		}
-		else
-		{
-			b = false;
-		}
+		
 
+		// Finally update the player movement accordingly
 		this.Move();
-		// now implement override functions for collision
+		
 		
 	}
-
-	//virtural functions 
-	//colide with a phyical object and it stops me 
+ 
 	OnCollisionEnter(other){
+		// Debug message for when the player collided with another physical object
 		console.log("Player just collided with " + other.name);
 	}
-
-	//colide with a object and a event happens
-	OnTriggerEnter(other){
-		console.log("Player just triggered " + other.name);
-	}
-	
 
 }
 
@@ -441,11 +445,11 @@ class Wall extends GameObject
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 
 		this.vertices =
-		[	//Top wing
+		[	// Two triangles that make up a rectangle
 			-0.03,1,0, 	1,0,0,
 			0.03,1,0,	0,1,0,
 			-0.03,-1,0,	0,0,1,
-			//Bottom wing
+			
 			0.03,1,0,	0,0,1,
 			0.03,-1,0,	0,1,0,
 			-0.03,-1,0,	1,0,0
@@ -457,15 +461,18 @@ class Wall extends GameObject
 
 	Update()
 	{
+		// wall doesnt need to update anything! There are various approaches in how the
+		// object should update themselfs. Figured that since wall doenst really move that
+		// it shouldnt track any collisions with other object constantly. Also, parts of the walls
+		// collide with each other so we dont want them to bug out 
 		//this.Move();
 	}
 
 	OnCollisionEnter(other){
+		// This only gets called when an object other than a wall collides with it
 		console.log("Wall just collided with " + other.name);
 	}
 }
-
-
 
 class Coin extends GameObject
 {
@@ -524,15 +531,17 @@ class Coin extends GameObject
 	Update()
 	{
 		//this.Move();
-		// rotate in the y axis constantly
+		// rotate in the y axis constantly and call move to reflect changes
+		// The rotation could have been done without the need for Move()
 		this.angVelocity = [0,0.008,0];
-		this.Move()
+		this.Move();
 	}
 
 	OnTriggerEnter(other){
-		console.log("Coin just collided with " + other.name);
 		if(other.name == "Player")
-		{
+		{	// A collision from the player will signify that the coin has been 
+			// collected
+			console.log("Coin just collided with " + other.name);
 			console.log("Coin will delete");
 			m.DestroyObject(this.id);
 		}
@@ -561,12 +570,14 @@ class Enemy extends GameObject
 	   	];
 
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
-		this.velocity = [0.007,0,0];
-		this.sign = 0;
+		this.velocity = [0.007,0,0];	// We want enemy object to already be moving off rip
+		this.sign = 0;		// Sign helps in determining in which direction to go when colliding with a wall
 	}
 
 	Update()
 	{
+		// Simply update the enemy movement. Collision wont happen immediately so we want to
+		// still update the enemy movement anyways
 		this.Move();
 	}
 
@@ -574,12 +585,13 @@ class Enemy extends GameObject
 	{
 		if(other.name == "Wall")
 		{
+			// 0 == positive movement (right)
 			if(this.sign == 0)
 			{
 				this.velocity = [0.007,0,0];
 				this.sign = 1;
 			}
-			else
+			else	// left movement (left)
 			{
 				this.velocity = [-0.007,0,0];
 				this.sign = 0;
@@ -587,6 +599,7 @@ class Enemy extends GameObject
 		}
 		else if(other.name == "Player")
 		{
+			// If player collides with Enemy then destroy the player!
 			console.log("Player Destroyed!");
 			m.DestroyObject(other.id);
 		}
