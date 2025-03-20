@@ -113,15 +113,16 @@
 				
 				// Walls
 				this.CreateObject(1,Wall,[1,0,0],[0,0,0], 0.03, 1);		// Right
-				this.CreateObject(1,Wall,[0,1,0],[0,0,1.5708], 1, 0.03);	// Top
+				this.CreateObject(1,Wall,[0,1,0],[0,0,1.5708], 1, 0.03);	// Top (rotated 90)
 				this.CreateObject(1,Wall,[-1,0,0],[0,0,0], 0.03, 1);	// Left
-				this.CreateObject(1,Wall,[0,-1,0],[0,0,1.5708], 1, 0.03);	// Bottom
+				this.CreateObject(1,Wall,[0,-1,0],[0,0,1.5708], 1, 0.03);	// Bottom (rotated 90)
 
 				// Coin
 				this.CreateObject(2,Coin,[0,0,0],[0,0,0],0.1,0.1);
 
 				// Enemy
-				this.CreateObject(1,Enemy,[0,-0.8,0],[0,0,0],0.1,0.1);
+				this.CreateObject(1,Enemy,[0,-0.8,0],[0,0,0],0.1,0.1,0);
+				this.CreateObject(1,Enemy,[0.8,0,0],[0,0,0],0.1,0.1,1);
 
 				// Allows us to obtain a fully functional webgl program! Treat it like a black box
 				this.myWEBGL = new WebGL_Interface();
@@ -175,7 +176,7 @@
 
 			}
 
-			CreateObject(type, prefab, loc, rot, cRX, cRY)
+			CreateObject(type, prefab, loc, rot, cRX, cRY, hV)
 			{
 
 				// The idea is to create a new object based on the passed type and
@@ -195,6 +196,15 @@
 				temp.prefab = prefab;
 				temp.cRadX = cRX;	// Setting the objects x and y radius
 				temp.cRadY = cRY;
+
+				if(temp.name == "Enemy")
+				{
+					if(hV == 0)
+						temp.velocity = [0.007,0,0];
+					else 
+						temp.velocity = [0,0.007,0];
+				}	
+			
 				
 
 				// This is a deep copy and helps us prevent any cross references

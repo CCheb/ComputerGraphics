@@ -255,13 +255,13 @@ class Bullet extends GameObject
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		this.vertices =
 		[	//Top wing
-			-0.1,0.1,0, 	1,0,0,
-			0.1,0.1,0,		0,1,0,
-			-0.1,-0.1,0,	0,0,1,
+			-0.03,0.03,0, 	1,0,0,
+			0.03,0.03,0,		0,1,0,
+			-0.03,-0.03,0,	0,0,1,
 			//Bottom wing
-			0.1,0.1,0,		0,0,1,
-			0.1,-0.1,0,		0,1,0,
-			-0.1,-0.1,0,	1,0,0
+			0.03,0.03,0,		0,0,1,
+			0.03,-0.03,0,		0,1,0,
+			-0.03,-0.03,0,	1,0,0
 		   
 	   	];
 
@@ -276,7 +276,7 @@ class Bullet extends GameObject
 		// direction
 		for(let i = 0; i < 3; i++)
 		{
-			this.velocity[i] = this.dir[i] * 0.05;	
+			this.velocity[i] = this.dir[i] * 0.02;	
 		}
 		// Now update bullets movement and check for collisions
 		this.Move();
@@ -317,13 +317,13 @@ class Player extends GameObject
 		// locations with the help of the translation matrix.
 		this.vertices =
 		[	//Top wing
-			-0.1,0.1,0, 	1,0,0,
-			0.1,0.1,0,		0,1,0,
-			-0.1,-0.1,0,	0,0,1,
-			//Bottom wing
-			0.1,0.1,0,		0,0,1,
-			0.1,-0.1,0,		0,1,0,
-			-0.1,-0.1,0,	1,0,0
+            -0.08,0.1,0, 1,0,0,
+            0.1,0,0,    0,1,0,
+            0,0,0,      0,0,1,
+            //Bottom wing
+            0,0,0,      0,0,1,
+            0.1,0,0,    0,1,0,
+            -0.08,-0.1,0,   1,0,0
 		   
 	   	];
 	   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
@@ -415,7 +415,7 @@ class Player extends GameObject
 				// Once we can fire a bullet, we first create it, update the direction vectors
 				// to the latest rotation, send that direction information over to dir and then
 				// let the bullet travel in the direction that the player is pointing
-				var bullet = m.CreateObject(2, Bullet, [this.loc[0],this.loc[1],0], this.rot,0.1,0.1);
+				var bullet = m.CreateObject(2, Bullet, [this.loc[0],this.loc[1],0], this.rot,0.03,0.03);
 				this.tranform.doRotations(this.rot);
 				bullet.dir = this.tranform.right;
 			}
@@ -486,41 +486,41 @@ class Coin extends GameObject
 
 		this.vertices =
 		[	// Front face
-			0,0.1,-0.05, 		0.988,0.584,0.050,
-			-0.1,-0.1,-0.05,		0.988,0.584,0.050,
-			0.1,-0.1,-0.05,		0.988,0.584,0.050,
+			0,0.1,-0.01, 		0.988,0.584,0.050,
+			-0.1,-0.1,-0.01,		0.988,0.584,0.050,
+			0.1,-0.1,-0.01,		0.988,0.584,0.050,
 
 			// Left side
-			0,0.1,-0.05, 		0.988,0.584,0.050,
-			-0.1,-0.1,0.05,	0.988,0.584,0.050,
-			-0.1,-0.1,-0.05,	0.988,0.584,0.050,
+			0,0.1,-0.01, 		0.988,0.584,0.050,
+			-0.1,-0.1,0.01,	0.988,0.584,0.050,
+			-0.1,-0.1,-0.01,	0.988,0.584,0.050,
 
-			0,0.1,-0.05, 		0.988,0.584,0.050,
-			0,0.1,0.05, 		0.988,0.584,0.050,
-			-0.1,-0.1,0.05,	0.988,0.584,0.050,
+			0,0.1,-0.01, 		0.988,0.584,0.050,
+			0,0.1,0.01, 		0.988,0.584,0.050,
+			-0.1,-0.1,0.01,	0.988,0.584,0.050,
 
 			// right side
-			0,0.1,-0.05, 		0.988,0.584,0.050,
-			0,0.1,0.05, 		0.988,0.584,0.050,
-			0.1,-0.1,0.05, 	0.988,0.584,0.050,
+			0,0.1,-0.01, 		0.988,0.584,0.050,
+			0,0.1,0.01, 		0.988,0.584,0.050,
+			0.1,-0.1,0.01, 	0.988,0.584,0.050,
 
-			0,0.1,-0.05, 		0.988,0.584,0.050,
-			0.1,-0.1,-0.05, 	0.988,0.584,0.050,
-			0.1,-0.1,0.05, 	0.988,0.584,0.050,
+			0,0.1,-0.01, 		0.988,0.584,0.050,
+			0.1,-0.1,-0.01, 	0.988,0.584,0.050,
+			0.1,-0.1,0.01, 	0.988,0.584,0.050,
 
 			// Bottom Side
-			-0.1,-0.1,0.05, 	0.988,0.584,0.050,
-			-0.1,-0.1,0.05, 	0.988,0.584,0.050,
-			0.1,-0.1,0.05, 	0.988,0.584,0.050,
+			-0.1,-0.1,0.01, 	0.988,0.584,0.050,
+			-0.1,-0.1,0.01, 	0.988,0.584,0.050,
+			0.1,-0.1,0.01, 	0.988,0.584,0.050,
 
-			-0.1,-0.1,0.05, 	0.988,0.584,0.050,
-			0.1,-0.1,0.05,		0.988,0.584,0.050,
-			0.1,-0.1,-0.05, 	0.988,0.584,0.050,
+			-0.1,-0.1,0.01, 	0.988,0.584,0.050,
+			0.1,-0.1,0.01,		0.988,0.584,0.050,
+			0.1,-0.1,-0.01, 	0.988,0.584,0.050,
 
 			// Back face
-			0,0.1,0.05, 		0.0,0.0,0.0,
-			-0.1,-0.1,0.05,	0.0,0.0,0.0,
-			0.1,-0.1,0.05,	0.0,0.0,0.0
+			0,0.1,0.01, 		0.0,0.0,0.0,
+			-0.1,-0.1,0.01,	0.0,0.0,0.0,
+			0.1,-0.1,0.01,	0.0,0.0,0.0
 		   
 	   	];
 
@@ -554,6 +554,7 @@ class Enemy extends GameObject
 	{
 		super(6);
 		this.name = "Enemy"; 
+		//this.hVert;
 		this.buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 
@@ -570,7 +571,7 @@ class Enemy extends GameObject
 	   	];
 
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
-		this.velocity = [0.007,0,0];	// We want enemy object to already be moving off rip
+		//this.velocity = [0.007,0,0];	// We want enemy object to already be moving off rip
 		this.sign = 0;		// Sign helps in determining in which direction to go when colliding with a wall
 	}
 
@@ -583,17 +584,21 @@ class Enemy extends GameObject
 
 	OnCollisionEnter(other)
 	{
-		if(other.name == "Wall")
+		if(other.name == "Wall" || other.name == "Enemy")
 		{
 			// 0 == positive movement (right)
 			if(this.sign == 0)
 			{
-				this.velocity = [0.007,0,0];
+				
+				this.velocity = this.velocity.map(value => value * -1);
+
 				this.sign = 1;
 			}
 			else	// left movement (left)
 			{
-				this.velocity = [-0.007,0,0];
+				
+				this.velocity = this.velocity.map(value => value * -1);
+				
 				this.sign = 0;
 			}
 		}
