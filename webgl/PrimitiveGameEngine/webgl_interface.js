@@ -5,9 +5,9 @@ class WebGL_Interface
 		this.vertexShaderSource = document.getElementById("2dVertexShader").text;
 		this.fragmentShaderSource = document.getElementById("2dFragmentShader").text;
 		this.vertexShader = this.createShader(gl.VERTEX_SHADER, this.vertexShaderSource);
-		this.fragmenShader = this.createShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+		this.fragmentShader = this.createShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
 		//Link to program
-		this.program = this.createProgram(this.vertexShader,this.fragmenShader);
+		this.program = this.createProgram(this.vertexShader,this.fragmentShader);
 		//setup our viewport
 		gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
 		//set clear colors

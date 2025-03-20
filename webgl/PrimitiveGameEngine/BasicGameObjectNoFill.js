@@ -292,7 +292,20 @@ class Bullet extends GameObject
 			// Special case for when the bullet collides with the Enemy
 			// Both should be destroyed in this case
 			if(other.name == "Enemy")
+			{
 				m.DestroyObject(other.id);
+				// Check if this is the last enemy. If so the player has won
+				// so print out a message!
+				if(m.enemyCount == 0)
+				{
+					var victory = document.createElement("p");
+					victory.style.color = "green"
+					victory.textContent = "Victory! All enemies have been destroyed!";
+					document.body.appendChild(victory);
+
+				}
+
+			}
 		}
 		
 
@@ -543,7 +556,17 @@ class Coin extends GameObject
 			// collected
 			console.log("Coin just collided with " + other.name);
 			console.log("Coin will delete");
+			pPara.innerHTML = "Score: " + (++m.score);
 			m.DestroyObject(this.id);
+
+			// Print out a message if all coins have been collected!
+			if(m.coinCount == 0)
+			{
+				var collected = document.createElement("p");
+				collected.style.color = "orange";
+				collected.textContent = "All coins collected!";
+				document.body.appendChild(collected);
+			}
 		}
 	}
 }
@@ -605,7 +628,10 @@ class Enemy extends GameObject
 		else if(other.name == "Player")
 		{
 			// If player collides with Enemy then destroy the player!
-			console.log("Player Destroyed!");
+			var gameOver = document.createElement("p");
+			gameOver.style.color = "red";
+			gameOver.textContent = "Defeat! The Player has been destroyed!";
+			document.body.appendChild(gameOver);
 			m.DestroyObject(other.id);
 		}
 	}
