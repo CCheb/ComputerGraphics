@@ -543,7 +543,6 @@ class Coin extends GameObject
 
 	Update()
 	{
-		//this.Move();
 		// rotate in the y axis constantly and call move to reflect changes
 		// The rotation could have been done without the need for Move()
 		this.angVelocity = [0,0.008,0];
