@@ -10,10 +10,11 @@ class Transform
 
 	doRotations(RotAngles)
 	{
+		// Had to change the signs of the right sine over to the bottom left sign
 		this.xRot = [
 					[1,0,0,0],
-					[0,Math.cos(RotAngles[0]),-1*Math.sin(RotAngles[0]),0],
-					[0,Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
+					[0,Math.cos(RotAngles[0]),Math.sin(RotAngles[0]),0],
+					[0,-1*Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
 					[0,0,0,1]
 				];		
 		this.yRot = [
@@ -23,12 +24,13 @@ class Transform
 				[0,0,0,1]	
 				];
 		this.zRot = [
-					[Math.cos(RotAngles[2]),-1*Math.sin(RotAngles[2]),0,0],
-					[Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
+					[Math.cos(RotAngles[2]),Math.sin(RotAngles[2]),0,0],
+					[-1*Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
 					[0,0,1,0],
 					[0,0,0,1]
 				]
 		//this.forward = this.crossMultiply(xRot,[0,0,1,0]);		
+		// Make sure all vectors are being multiplied in the right order
 		this.forward = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,0,1,0])))
 		this.right = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[1,0,0,0])))
 		this.up = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,1,0,0])))
@@ -57,7 +59,9 @@ class GameObject
 		this.loc = [0,0,0];
 		this.rot = [0,0,0];
 		this.isTrigger = false;
-		this.collissionRadius = 1.0;
+		this.cRadX = 1.0;
+		this.cRadY = 1.0;
+		this.cRadZ = 1.0;
 		this.velocity = [0,0,0];
 		this.angVelocity = [0,0,0];
 		this.name = "default";
@@ -69,12 +73,18 @@ class GameObject
 	
 	Move()
 	{
-		var tempP = [0,0,0]
+		var tempP = [0,0,0];
 		for(var i =0; i< 3;i ++)
 		{
 			tempP[i] = this.loc[i];
 			tempP[i] += this.velocity[i];
 			this.rot[i] += this.angVelocity[i];
+		}
+		// If any of the rotation values reach 360 degrees (6.28319~), reset back to 0 degrees
+		for(var j = 0; j < 3; j++)
+		{
+			if(this.rot[j] >= 6.28319)
+				this.rot[j] = 0;
 		}
 		if(!this.isTrigger)
 		{
@@ -83,31 +93,76 @@ class GameObject
 			{
 				if(m.Solid[so] != this)
 				{
-					if(m.CheckCollision(tempP,this.collissionRadius,m.Solid[so].loc,m.Solid[so].collissionRadius))
+					if(m.CheckCollision(tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
 					{
+						this.OnTriggerEnter(m.Solid[so])
+
+						try
+						{
+							m.Solid[so].OnCollisionEnter(this);
+						}
+						catch{}
+
 						clear = false;
 					}
 				}
 			} 
 			if(clear)
 			{
-			this.loc = tempP;
+				this.loc = tempP;
 			}
 		}
 		else
-		{
+		{  
 			this.loc = tempP;
-			//see if there are any collisions
-			//handle them.
-			// Add trigger collision here if needed
+			// Check the trigger object against any solid objects
+			for(var so in m.Solid)
+			{
+				// If we already collided with the solid object earlier and it has a OnTriggerEnter then
+				// we can simply store it and use it here
+				if(m.CheckCollision(tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+				{
+					// If there is a detected collision then call the TriggerEnter function from the
+					// object thats listening for collisions, in this case the trigger object
+					this.OnTriggerEnter(m.Solid[so]);
+					try
+					{
+						m.Solid[so].OnTriggerEnter(this);
+					}
+					catch
+					{}
+				}
+			
+			}
+			// Now check trigger with trigger just in case
+			for(var to in m.Trigger)
+			{ 	//this should be correct. It is trying to check for trigger objects insted of solid objects
+				if(this != m.Trigger[to]){
+					if(m.CheckCollision(tempP, this.cRadX, this.cRadY, this.cRadZ, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY, m.Trigger[to].cRadZ))
+					{
+						this.OnTriggerEnter(m.Trigger[to]);
+						try
+						{
+							m.Trigger[to].OnTriggerEnter(this);
+						}
+						catch
+						{}
+					}
+				}
+			}
 		}
 	}
 
+	// Virtual functions that the children of GameObject might implement
+	OnCollisionEnter(other){}
+
+	OnTriggerEnter(other){}
 	
 	Update()
 	{
 		console.error(this.name +" update() is NOT IMPLEMENTED!");
 	}
+
 	Render(program)
 	{
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
@@ -236,6 +291,7 @@ class Gem extends GameObject
 	 {
 		super(24);
 		this.name = "Gem";
+		
 		this.buffer=gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		//Now we want to add color to our vertices information.
@@ -284,19 +340,25 @@ class Gem extends GameObject
 	 
 	 Update()
 	 {
-		
-
 		// Enable the dorito to rotate slowly
         // random number between 0.01 and 0.5 and placing it in a random axis
         this.angVelocity[Math.floor(Math.random()*3)] = Math.random() * (0.01 - 0.009) + 0.009;
         for(let i = 0; i < 3; i++)
             this.rot[i] += this.angVelocity[i];
 
+		this.transform.doRotations(this.rot);
+
         // No need to call Move() since we only want to rotate the gems
         // It will be the job of the camera to check for collisions with itself.
         //this.Move();
+	 }
 
+	 OnCollisionEnter(other)
+	 {
+		if(other.name == "Camera")
+			console.log("Camera collided with Gem");
 
+		console.log("Something");
 	 }
  }
 
@@ -308,6 +370,7 @@ class Camera extends GameObject
 	{
 		super(0);
 		this.name = "Camera";
+		//this.isTrigger = true;
 		// No need to model the camera itself only the object that we will see
 
 		this.loc = [0,0,0];
@@ -328,37 +391,62 @@ class Camera extends GameObject
 		{
 			this.angVelocity[1] +=.01;
 		}
+		if("N" in m.Keys && m.Keys["N"])	// Look up
+		{
+			
+			this.angVelocity[0] +=.01;
+		}
+		if("M" in m.Keys && m.Keys["M"])	// Look down
+		{
+			
+			this.angVelocity[0] -=.01;
+		}
+		// Make sure to rotate the direction vectors by the same ammount!
 		this.transform.doRotations(this.rot);
 		// Want to move in the z direction which is where the camera is pointing
 		var tempF = this.transform.forward;
-		if("W" in m.Keys && m.Keys["W"])
+		if("W" in m.Keys && m.Keys["W"])	// Move forward 
 		{
 			for(var i =0; i < 3; i ++)
 			{
-				this.velocity[i] += tempF[i]*.01; 
+				this.velocity[i] += tempF[i]*.05; 
 			}
 		}
-		if("S" in m.Keys && m.Keys["S"])
+		if("S" in m.Keys && m.Keys["S"])	// Move backwards
 		{
 			for(var i =0; i < 3; i ++)
 			{
-				this.velocity[i] -= tempF[i]*.01; 
+				this.velocity[i] -= tempF[i]*.05; 
 			}
 		}
-		this.Move();
+		
 
 		// Now set the world loc and rot variables for the camera
 		var wLoc = gl.getUniformLocation(m.myWEBGL.program, 'worldLoc');
 		gl.uniform3fv(wLoc, new Float32Array([this.loc[0],this.loc[1],this.loc[2]]));
 		var wRot = gl.getUniformLocation(m.myWEBGL.program, 'worldRotation');
 		gl.uniform3fv(wRot, new Float32Array([this.rot[0],this.rot[1],this.rot[2]]));
-		// camLoc and worldRot here so that the camera can move.
+
+		// Finalize update
+		this.Move();
+		
 	}
 
+	// No need to render since the camera has no verticies!
 	Render(program)
 	{
 
 	}
 
-	// No need to render since the camera has no verticies!
+	OnCollisionEnter(other)
+	{
+		if(other.name == "Gem")
+			console.log("Gem collided with camera");
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Gem")
+			console.log("Gem collided with camera");
+	}
 }
