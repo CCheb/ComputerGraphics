@@ -29,6 +29,8 @@
 		    //in buffers. Ideally, we would use mat4 instead of vec3
 		    uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
 		    uniform vec3 rotation;	// Set until changed
+
+			
 		    
             
 		    //Use a function to position the object. The X, Y, and Z are the vertices to be translated (pos)
@@ -113,6 +115,8 @@
 					gl.enable(gl.DEPTH_TEST);
 
 					gl.useProgram(this.program);
+
+					
 				}
 
 				createShader(type,source)
@@ -234,7 +238,7 @@
 					this.triangleCount = count;
 				}
 			
-				//assuming that velocity is set correctly 
+				// Any object that calls Move() will 'listen' for collisions
 				Move(){
 					// tempP acts as the ghost/future self of the object thats
 					// moving or rotating. We dont want to immediately apply the new
@@ -287,15 +291,16 @@
 							this.loc = tempP;
 						}
 					}
-
-					else{ //this should be right 
+					// If the object is not a solid, then it will start its collision check here
+					else{  
 						this.loc = tempP;
-						//console.log("this works");
+						// Check the trigger object against any solid objects
 						for(var so in m.Solid){
 							// If we already collided with the solid object earlier and it has a OnTriggerEnter then
 							// we can simply store it and use it here
 							if(m.CheckCollision(tempP, this.cRadX, this.cRadY, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY)){
-								// What if the Solid doenst have an OnTriggerEnter
+								// If there is a detected collision then call the TriggerEnter function from the
+								// object thats listening for collisions, in this case the trigger object
 								this.OnTriggerEnter(m.Solid[so]);
 								try
 								{
@@ -308,7 +313,7 @@
 							}
 						
 						}
-						// Now check if 
+						// Now check trigger with trigger just in case
 						for(var to in m.Trigger){ //this should be correct. It is trying to check for trigger objects insted of solid objects
 							if(this != m.Trigger[to]){
 								if(m.CheckCollision(tempP, this.cRadX, this.cRadY, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY)){
@@ -328,7 +333,7 @@
 				} 
 			
 			
-				//virtural functions 
+				//virtural functions. Objects derived from GameObject will need to define them!
 				//colide with a phyical object and it stops me 
 				OnCollisionEnter(other){
 				
@@ -340,7 +345,7 @@
 				}
 			
 			
-				//make a fake abstract class
+				// Abstract class
 				Update()
 				{
 					console.error(this.name +" update() is NOT IMPLEMENTED!");
@@ -404,6 +409,8 @@
 					// So that the bullet is fired in the right direction
 					this.dir;
 				
+					// Make sure to update ARRAY_BUFFER when creating a new object so that webGL doesnt
+					// update this.buffer with the values of another buffer from another object.
 					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 					this.vertices =
 					[	//Top wing
@@ -456,11 +463,8 @@
 								document.body.appendChild(victory);
 							
 							}
-						
 						}
 					}
-
-				
 				}
 			}
 
@@ -826,6 +830,10 @@
 
 
 				// Enemies
+				// Think about it, we are specifying what type of object we want, the initial location
+				// and rotation, and the size, and if its an enemy whether we want it to go vertically (1)
+				// or horizontally (0), theres no need to specify the ammount of verticies sinces that already
+				// defined inside of the object
 				this.CreateObject(1,Enemy,[0,-0.5,0],[0,0,0],0.1,0.1,0);
 				this.CreateObject(1,Enemy,[0.4,0,0],[0,0,0],0.1,0.1,1);
 				this.CreateObject(1,Enemy,[0.0,0.1,0],[0,0,0],0.1,0.1,0);
@@ -876,6 +884,9 @@
 				var totalRangeY = rad1Y + rad2Y;
 				
 				// If the objects are within the total x and y range then they have collided!
+				// Left side checks for collisions on its left and right sides, the right side
+				// checks for collisions on its top and bottom. This allows us to create a collision 
+				// box for rectangles!
 				if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY)
 					return true;
 				
