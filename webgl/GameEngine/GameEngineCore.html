@@ -225,7 +225,7 @@
 				}
 			
 			}
-			CheckCollision(loc1,rad1X,rad1Y,rad1Z,loc2,rad2X,rad2Y,rad2Z)
+			CheckCollision(name1,loc1,rad1X,rad1Y,rad1Z,loc2,rad2X,rad2Y,rad2Z)
 			{
 				// X, Y and Z radiuses for each object
 				var totalRange = rad1X + rad2X;
@@ -233,10 +233,17 @@
 				var totalRangeZ = rad1Z + rad2Z;
 				// Return true if they collide, false if they don't.
 				
+				if(name1 == "Camera")
+				{
+					if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]+loc2[2]) < totalRangeZ)
+						return true;
+
+					return false;
+				}
 				// Its important to add both locations when checking the z axis. If gem is at -5, doing loc1[2] - loc2[2] will only
 				// cause the distance to grow as we approach the gem which is the opposite of what we want. Instead we subtract and then 
 				// take the absolute value. This should also probably apply to x and y in 3d space
-				if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]+loc2[2]) < totalRangeZ)
+				if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]-loc2[2]) < totalRangeZ)
 					return true;
 
 				return false;

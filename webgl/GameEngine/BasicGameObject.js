@@ -81,11 +81,7 @@ class GameObject
 			this.rot[i] += this.angVelocity[i];
 		}
 		// If any of the rotation values reach 360 degrees (6.28319~), reset back to 0 degrees
-		for(var j = 0; j < 3; j++)
-		{
-			if(this.rot[j] >= 6.28319)
-				this.rot[j] = 0;
-		}
+		
 		if(!this.isTrigger)
 		{
 			var clear = true;
@@ -93,7 +89,7 @@ class GameObject
 			{
 				if(m.Solid[so] != this)
 				{
-					if(m.CheckCollision(tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+					if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
 					{
 						this.OnTriggerEnter(m.Solid[so])
 
@@ -120,7 +116,7 @@ class GameObject
 			{
 				// If we already collided with the solid object earlier and it has a OnTriggerEnter then
 				// we can simply store it and use it here
-				if(m.CheckCollision(tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+				if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
 				{
 					// If there is a detected collision then call the TriggerEnter function from the
 					// object thats listening for collisions, in this case the trigger object
@@ -138,7 +134,7 @@ class GameObject
 			for(var to in m.Trigger)
 			{ 	//this should be correct. It is trying to check for trigger objects insted of solid objects
 				if(this != m.Trigger[to]){
-					if(m.CheckCollision(tempP, this.cRadX, this.cRadY, this.cRadZ, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY, m.Trigger[to].cRadZ))
+					if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY, m.Trigger[to].cRadZ))
 					{
 						this.OnTriggerEnter(m.Trigger[to]);
 						try
@@ -358,11 +354,99 @@ class Gem extends GameObject
 		if(other.name == "Camera")
 			console.log("Camera collided with Gem");
 
+		
+
 		console.log("Something");
 	 }
  }
 
+class Bullet extends GameObject
+{
+	constructor()
+	{
+		// Need to specify the verticie count through the constructor (this could be changed)
+		super(24);
+		this.name = "Bullet";
+		// Bullet is a trigger object
+		this.isTrigger = true;
+		this.buffer=gl.createBuffer();
+		// We want to grab the correct vector of the player 
+		// So that the bullet is fired in the right direction
+		this.dir = [0,0,0];
+	
+		// Make sure to update ARRAY_BUFFER when creating a new object so that webGL doesnt
+		// update this.buffer with the values of another buffer from another object.
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		this.vertices =
+		[	
+			//Top Front
+			0,0.6,0,   1,0,0,
+			0.45,0,0.45,  1,0,0,
+			-0.45,0,0.45,	 1,0,0,
+			 //Bottom Front
+			0,-0.6,0,	0,1,0,
+			0.45,0,0.45,	0,1,0,
+			-0.45,0,0.45,	0,1,0,
+			//Top Left
+			0,0.6,0,	 0,0,1,
+			-0.45,0,0.45,	 0,0,1,
+			-0.45,0,-0.45, 0,0,1,
+			//Top Right
+			0,0.6,0,	1,1,0,
+			0.45,0,0.45,	1,1,0,
+			0.45,0,-0.45,	1,1,0,
+			//Top rear
+			0,0.6,0,		0,1,1,
+			0.45,0,-0.45,		0,1,1,
+			-0.45,0,-0.45,	0,1,1,
 
+			-0.45,0,-0.45,	1,0,1,
+			0.45,0,-0.45,		1,0,1,
+			0,-0.6,0,		1,0,1,
+	
+			0,-0.6,0,		1,0.3,0.5,
+			0.45,0,0.45,		1,0,0.5,
+			0.45,0,-0.45,		1,0.3,0.5,
+	
+			-0.45,0,0.45,		0.5,0.1,0.3,
+			0,-0.6,0,		1,0.1,0.3,
+			-0.45,0,-0.45,	0.5,0.1,1
+			
+
+		];
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+		this.loc = [0,0,0];
+	}
+
+	Update()
+	{
+		// Update each of the velocity values of the bullet
+		// by muliplying the right vector by a scalar. The vector
+		// helps give direction and scaling it helps in preserving that
+		// direction
+		for(let i = 0; i < 3; i++)
+		{ 
+			this.velocity[i] -= this.dir[i] * 0.02;	
+		}
+		// Now update bullets movement and check for collisions
+		this.Move();
+
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Gem")
+		{
+			console.log("Gem collided with bullet");
+			m.DestroyObject(this.id);
+			m.DestroyObject(other.id);
+		}
+
+		
+	}
+}
 // Treat camera as a game object and go from there.
 class Camera extends GameObject
 {
@@ -417,6 +501,39 @@ class Camera extends GameObject
 			for(var i =0; i < 3; i ++)
 			{
 				this.velocity[i] -= tempF[i]*.05; 
+			}
+		}
+
+		
+		// Pressing the space bar will cause the player to shoot a bullet
+		if(" " in m.Keys && m.Keys[" "])
+		{
+			console.log("Space works!");
+			// Idea is to first check if a bullet already exists in the play area
+			// if so then we dont shoot another bullet until the one that already exists
+			// is destroyed first. var b helps us with this
+			var b = false;
+			for(var so in m.Trigger)
+			{
+				// Bullet object is considered to be trigger object
+				if("Bullet" == m.Trigger[so].name)
+				{
+					b = true;
+					break;
+				}
+			}
+		
+			if(!b)
+			{
+				// Once we can fire a bullet, we first create it, update the direction vectors
+				// to the latest rotation, send that direction information over to dir and then
+				// let the bullet travel in the direction that the player is pointing
+				//this.transform.doRotations(this.rot);
+				var bullet = m.CreateObject(2, Bullet, [this.loc[0], this.loc[1], -1*this.loc[2]],[this.rot[0],this.rot[1],this.rot[2]],0.5,0.5,0.5);
+				var dir = this.transform.forward;
+				bullet.dir[0] = -1*dir[0];
+				bullet.dir[1] = -1*dir[1];
+				bullet.dir[2] = dir[2];
 			}
 		}
 		
