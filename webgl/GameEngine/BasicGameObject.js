@@ -197,89 +197,6 @@ class GameObject
 	}	
 }
 
-
-class Player extends GameObject
-{
-	constructor()
-	{
-		super(3);
-		this.buffer=gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		this.vertices =
-		[
-			-.05, -.1, 0, 0,0,1,
-			.05,    0, 0, 1,0,0,
-			-.05, .1,  0, 0,0,1
-		]	
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);		
-	}
-
-	Update()
-	{
-		this.velocity = [0,0,0];
-		this.angVelocity = [0,0,0];
-		if("A" in m.Keys && m.Keys["A"])
-		{
-			this.angVelocity[2] +=.01;		//euler angles x,y,z
-		}
-		if("D" in m.Keys && m.Keys["D"])
-		{
-			this.angVelocity[2] -=.01;
-		}
-		this.transform.doRotations(this.rot);
-		var tempF = this.transform.right;
-		if("W" in m.Keys && m.Keys["W"])
-		{
-			for(var i =0; i < 3; i ++)
-			{
-				this.velocity[i] += tempF[i]*.01; 
-			}
-		}
-		if("S" in m.Keys && m.Keys["S"])
-		{
-			for(var i =0; i < 3; i ++)
-			{
-				this.velocity[i] -= tempF[i]*.01; 
-			}
-		}
-		this.Move();
-	}
-}
-
-
-class Demo extends GameObject
-{
-	constructor()
-	{
-		super();
-
-
-	}
-	
-	Update()
-	{
-		this.velocity = [0,0,0];
-		if("A" in m.Keys && m.Keys["A"])
-		{
-			this.velocity[0] = -1;
-		}
-		if("W" in m.Keys && m.Keys["W"])
-		{
-			this.velocity[1] = 1;
-		}
-		//D 
-		//S 
-		console.log("THE VELOCITY IS "+this.velocity);
-		
-	}
-
-	Render(program)
-	{
-	//This is how I draw demo!	
-	}
-	
-}
-
 // Added child status 
 class Gem extends GameObject
  {
@@ -287,7 +204,7 @@ class Gem extends GameObject
 	 {
 		super(24);
 		this.name = "Gem";
-		
+		this.hits = 0;
 		this.buffer=gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		//Now we want to add color to our vertices information.
@@ -440,10 +357,19 @@ class Bullet extends GameObject
 		if(other.name == "Gem")
 		{
 			console.log("Gem collided with bullet");
+			// When the Gem gets hit three times then destroy it. Each gem will
+			// have its own hits counter and will be incremented when a bullet collides with it
+			if(++other.hits == 3)
+				m.DestroyObject(other.id);
+
 			m.DestroyObject(this.id);
-			m.DestroyObject(other.id);
 		}
 
+		if(other.name == "Boundary")
+		{
+			console.log("Gem collided with Boundary")
+			m.DestroyObject(this.id);
+		}
 		
 	}
 }
@@ -493,14 +419,14 @@ class Camera extends GameObject
 		{
 			for(var i =0; i < 3; i ++)
 			{
-				this.velocity[i] += tempF[i]*.05; 
+				this.velocity[i] += tempF[i]*.07; 
 			}
 		}
 		if("S" in m.Keys && m.Keys["S"])	// Move backwards
 		{
 			for(var i =0; i < 3; i ++)
 			{
-				this.velocity[i] -= tempF[i]*.05; 
+				this.velocity[i] -= tempF[i]*.07; 
 			}
 		}
 
@@ -566,4 +492,27 @@ class Camera extends GameObject
 		if(other.name == "Gem")
 			console.log("Gem collided with camera");
 	}
+}
+
+class Boundary extends GameObject
+{
+	constructor()
+	{
+		super(0);
+		this.name = "Boundary";
+		this.loc = [0,0,0];
+		this.rot = [0,0,0];
+	}
+
+	Update()
+	{
+		// Nothing for Boundary
+	}
+
+	Render(program)
+	{
+		// Nothing for Boundary
+	}
+
+
 }
