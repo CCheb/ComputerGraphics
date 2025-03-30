@@ -23,12 +23,15 @@ class WebGL_Interface
 		var worldRot = gl.getUniformLocation(this.program, 'worldRotation');
 		gl.uniform3fv(worldRot,new Float32Array([0,0,0]));
 
+		// The near plane helps to specify the FOV
+		// Think of changing the camera lense settings when playing with these values
 		var tempLoc = gl.getUniformLocation(this.program, 'n');
-		gl.uniform1f(tempLoc, 0.06);
+		gl.uniform1f(tempLoc, 0.06);	// The smaller it is, the wider the FOV
 		tempLoc = gl.getUniformLocation(this.program, 'r');
-		gl.uniform1f(tempLoc,0.1);
+		gl.uniform1f(tempLoc,0.08);	// The smaller the wider
 		tempLoc = gl.getUniformLocation(this.program, 't');
-		gl.uniform1f(tempLoc, 0.1);
+		gl.uniform1f(tempLoc, 0.08); // The smaller the wider
+		// How far I can see in front of me
 		tempLoc = gl.getUniformLocation(this.program, 'f');
 		gl.uniform1f(tempLoc, 500);
 	}

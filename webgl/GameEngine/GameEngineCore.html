@@ -41,8 +41,10 @@
                 vec3 cw = cos(worldRotation);
                 vec3 sw = sin(worldRotation);	
 
+
                 // Its negative because if we want to move the camera right, we have to move 
-                // world left, so we flip the signs to make it easier for us
+                // world left, so we flip the signs to make it easier for us. Z is positive here
+				// because the camera is already facing in the -z axis!
                 mat4 translateView = mat4(1.0,0.0,0.0,0.0,
                                          0.0,1.0,0.0,0.0,
                                          0.0,0.0,1.0,0.0,
@@ -61,6 +63,8 @@
                                        sw.y,0.0,cw.y,0.0,
                                        0.0,0.0,0.0,1.0);
 				// Multiplication order X->Y->translate
+				// It is these matracies that puts or world in camera space by simply applying
+				// extra transformations like translation and rotation of the entire world!
                 return rotateViewX*rotateViewY*translateView*pos;
 			}
 
@@ -141,6 +145,10 @@
 
 
 
+				// The last thing we would do is applying the projection matrix!
+				// THe projection is in charge of two important things: projecting
+				// a 3D point over to 2D AND shrinking our frustrum into a canonical
+				// viewing volume that always ranges from -1 to 1, hence clipsace!
                 // Go from camera -> clipspace (will be the final resting spot of the vertex!)
                 gl_Position=ApplyProjection(cameraSpace);
 		    }				

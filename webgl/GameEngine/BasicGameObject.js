@@ -395,10 +395,16 @@ class Camera extends GameObject
 		if("A" in m.Keys && m.Keys["A"])
 		{
 			// 1 == rotate y
+			// If we want to rotate the camera to move
+			// right then i have to rotate the entire world to the
+			// left. So in this case we make sure to rotate counter-clockwise
 			this.angVelocity[1] -=.01;		//euler angles x,y,z
 		}
 		if("D" in m.Keys && m.Keys["D"])
 		{
+			// Movign the world 
+			// Same idea of roation applies here! In this case to rotate the camera
+			// left, we make suere to rotate the world to the right (clock-wise)
 			this.angVelocity[1] +=.01;
 		}
 		if("N" in m.Keys && m.Keys["N"])	// Look up
@@ -417,14 +423,14 @@ class Camera extends GameObject
 		var tempF = this.transform.forward;
 		if("W" in m.Keys && m.Keys["W"])	// Move forward 
 		{
-			for(var i =0; i < 3; i ++)
+			for(var i =0; i < 3; i++)
 			{
 				this.velocity[i] += tempF[i]*.07; 
 			}
 		}
 		if("S" in m.Keys && m.Keys["S"])	// Move backwards
 		{
-			for(var i =0; i < 3; i ++)
+			for(var i =0; i < 3; i++)
 			{
 				this.velocity[i] -= tempF[i]*.07; 
 			}
@@ -465,6 +471,10 @@ class Camera extends GameObject
 		
 
 		// Now set the world loc and rot variables for the camera
+		// Moving the camera means changing these variables with user input
+		// These variables are then used in the MoveCamera function where the world
+		// moves OPPOSITE to what I input here, giving me the illusion that im moving the
+		// camera! The same idea goes for rotation
 		var wLoc = gl.getUniformLocation(m.myWEBGL.program, 'worldLoc');
 		gl.uniform3fv(wLoc, new Float32Array([this.loc[0],this.loc[1],this.loc[2]]));
 		var wRot = gl.getUniformLocation(m.myWEBGL.program, 'worldRotation');
