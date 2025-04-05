@@ -398,14 +398,14 @@ class Camera extends GameObject
 			// If we want to rotate the camera to move
 			// right then i have to rotate the entire world to the
 			// left. So in this case we make sure to rotate counter-clockwise
-			this.angVelocity[1] -=.01;		//euler angles x,y,z
+			this.angVelocity[1] +=.01;		//euler angles x,y,z
 		}
 		if("D" in m.Keys && m.Keys["D"])
 		{
 			// Movign the world 
 			// Same idea of roation applies here! In this case to rotate the camera
 			// left, we make suere to rotate the world to the right (clock-wise)
-			this.angVelocity[1] +=.01;
+			this.angVelocity[1] -=.01;
 		}
 		if("N" in m.Keys && m.Keys["N"])	// Look up
 		{

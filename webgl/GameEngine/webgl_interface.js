@@ -26,7 +26,7 @@ class WebGL_Interface
 		// The near plane helps to specify the FOV
 		// Think of changing the camera lense settings when playing with these values
 		var tempLoc = gl.getUniformLocation(this.program, 'n');
-		gl.uniform1f(tempLoc, 0.06);	// The smaller it is, the wider the FOV
+		gl.uniform1f(tempLoc, 0.06);	// The smaller it is, the wider the FOV 0.06
 		tempLoc = gl.getUniformLocation(this.program, 'r');
 		gl.uniform1f(tempLoc,0.08);	// The smaller the wider
 		tempLoc = gl.getUniformLocation(this.program, 't');
@@ -34,6 +34,16 @@ class WebGL_Interface
 		// How far I can see in front of me
 		tempLoc = gl.getUniformLocation(this.program, 'f');
 		gl.uniform1f(tempLoc, 500);
+
+		// Defining the aspect ratio
+		var aspect = gl.getUniformLocation(this.program, 'aspect');
+		var a = gl.canvas.width / gl.canvas.height;
+		gl.uniform1f(aspect, a);
+
+		// Defining the field of view
+		var field = gl.getUniformLocation(this.program, 'fov');
+		var fov = Math.tan(2.40); // ~120 degrees
+		gl.uniform1f(field, fov);
 	}
 	createShader(type,source)
 	{
