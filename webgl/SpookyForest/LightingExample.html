@@ -1,0 +1,465 @@
+<!DOCTYPE HTML>
+<HTML lang="en">
+	<Head>
+	<Title>"Modularizing WebGL"</TITLE>
+		
+		<!-- 
+		GLSL is the language used for shaders (GL Shader Language)
+		
+		Attribute - you specify how to pull the data out of the buffers you supply.
+		Buffers - Data loaded onto the GPU (Normally vertex information)
+		
+		Uniforms - global variables (in GLSL) that you set before you run the shader program
+		
+		Textures - Textures are arrays of data you can randomly acces in your shader program.  
+		
+		Varying - are way for a vertex shader to pass data to the fragmentShader.
+		-->
+		<script id="2dVertexShader" type="notjs">
+		attribute vec4 a_position;	
+		//We now want to read in Colors
+		attribute vec3 vert_color;
+		//However, we want to send the color to
+		//The fragment Shader
+		varying vec3 fragColor;
+				
+		uniform vec3 transform;
+		uniform vec3 rotation;		
+		
+		uniform vec3 worldLoc;
+		uniform vec3 worldRotation;
+		uniform float n;
+		uniform float f;
+		uniform float r;
+		uniform float t;
+
+		//Lighting. The idea is to implement a simple version of the phong model
+		// Make array to index each light, or create variable for each light
+
+		// Remember that vectors dont have translation values and are instead used 
+		// to specify direction in this case. You can implicitly think of these
+		// vectors being along side their respective vertex but it makes not difference
+		varying vec3 fakenormal;
+		varying vec3 v_surfaceToLight;	// L vector
+		varying vec3 v_surfaceToView;	// V vector
+		varying vec3 v_spot_surfaceToLight;	
+		
+		varying vec3 v_surfaceToLight2;
+		
+		
+		vec4 MoveCamera(vec4 pos)
+		{
+			vec3 cw = cos(worldRotation);
+			vec3 sw = sin(worldRotation);
+			mat4 translateView = mat4(1.0,0.0,0.0,0.0,
+									  0.0,1.0,0.0,0.0,
+									  0.0,0.0,1.0,0.0,
+									  -1.0*worldLoc.x,-1.0*worldLoc.y,worldLoc.z,1.0
+									);
+						
+			mat4 rotateView = mat4(cw.y,0.0,-1.0*sw.y,0.0,
+									0.0,1.0,0.0,0.0,
+									sw.y,0.0,cw.y,0.0,
+									0.0,0.0,0.0,1.0);
+			return rotateView*translateView*pos;
+		}
+		
+		vec4 ApplyProjection(vec4 pos)
+		{
+			mat4 SimpleOrtho = mat4  (1,0.0,0.0,0.0,
+							 0.0,1,0.0,0.0, 
+							 0.0,0.0,1,0.0, 
+							 0.0,0.0,0.0,1.0);
+
+			mat4 ComplexPerspective = mat4(
+										n/r, 0.0,0.0,0.0,
+										0.0, n/t,0.0,0.0,
+										0.0,0.0,-1.0*(f+n)/(f-n),-1.0,
+										0.0,0.0,-2.0*f*n/(f-n),0.0
+										);
+			mat4 ComplexOrtho = mat4(	1.0/r,0.0,0.0,0.0,
+										0.0,1.0/t,0.0,0.0,	//If I make the y -1.0/t I will invert the Y-axis.
+										0.0,0.0,1.0,0.0,
+										0.0,0.0,0.0,1.0	//If I make the x and y translate -1, -1 I can put 0,0 in the bottom right.
+									);
+									
+			mat4 SimplePerspective = 	mat4(
+								1.0,0.0,0.0,0.0,
+								0.0,1.0,0.0,0.0,
+								0.0,0.0,-1.0,-1.0,
+								0.0,0.0,-2.0,0.0			
+								);
+			return ComplexPerspective*pos;
+		}
+		
+		vec4 PositionObject(vec4 pos)
+		{
+			mat4 translateM = mat4(1.0,0.0,0.0,0.0,
+						   0.0,1.0,0.0,0.0,
+						   0.0,0.0,1.0,0.0,
+						   transform.x,transform.y,transform.z,1.0);
+			return translateM*pos;	
+		}
+		//Use a function to Rotate the object
+		vec4 RotateObject(vec4 pos)
+		{
+			//This is a nice trick
+			vec3 c = cos(rotation);
+			vec3 s = sin(rotation);
+			fragColor = vert_color;
+			//Surprise!  we have to go column firt when we enter the matrix.
+
+			//mat4 rotateX = mat4();
+			mat4 rotateY = mat4(c.y,0.0,-1.0*s.y,0.0,
+								0.0,1.0,0.0,0.0,
+								s.y,0.0,c.y,0.0,
+								0.0,0.0,0.0,1.0);
+			//mat4 rotateZ = mat4();
+			return rotateY*pos;
+		}
+		void main()
+		{
+			// Idea with fake normals is to have them spawn from the
+			// center of the object and have them shoot out from there
+			// these are not real normals. Ideally, each vertex should have its
+			// own normals. We are mimicking an object with spherical normals
+
+			// Spherical effect on objects
+			// from edge to center
+			// If the vertex from an object is greater than 5 then we consider this object
+			// to be the floor and thus set its normal facing directly up
+			if(length(a_position)<5.0)
+			{
+				//fakenormal = vec3(a_position);
+				// need to adjust the normal to where the
+				// verticie is facing
+				fakenormal = RotateObject(a_position).xyz;
+
+				
+			}
+			else
+			{
+				// Ground planes normal will be up always
+				fakenormal = vec3(0.0,1.0,0.0);
+			}
+			vec4 worldSpace = PositionObject(RotateObject(a_position));
+
+			// Lighting stuff
+			// The position of the point light. Moved it back in the -z direction
+			// Position doesnt have to be a constant, it can be a uniform
+			// rising the position of the surface in the y will cause the floor to be
+			// less lit. Remember: point - point = vector
+			v_surfaceToLight = vec3(0,0,-4) - worldSpace.xyz;
+
+			v_surfaceToLight2 = vec3(-5,0,0) - worldSpace.xyz;
+
+			// To make the light move with the world as the camera rotates and moves
+			// The vector that points from the vertex over to the camera. Can be used for calculating specularity
+			v_surfaceToView = worldLoc - worldSpace.xyz;
+			v_spot_surfaceToLight = vec3(5.0,0.0,-2.0) - worldSpace.xyz;
+
+			fragColor = vert_color;
+
+			vec4 cameraSpace = MoveCamera(worldSpace);
+			gl_Position = ApplyProjection(cameraSpace);
+
+
+
+			//fragColor = vert_color;
+			//vec4 worldCord = PositionObject(RotateObject(a_position));
+			//vec4 cameraSpace = MoveCamera(worldCord);
+			
+			//gl_Position=ApplyProjection(cameraSpace);
+		}		
+		</SCRIPT>
+		<script id="2dFragmentShader" type="notjs">
+		//Fragment shaders do not have precision so we have to set it.
+		precision mediump float;
+		varying vec3 fragColor;
+
+		// As long as their are facing in the correct direction, we should be good on lighting
+		varying vec3 fakenormal;
+		varying vec3 v_surfaceToLight;
+		varying vec3 v_surfaceToView;
+		varying vec3 v_spot_surfaceToLight;
+
+		
+		varying vec3 v_surfaceToLight2;
+
+
+		void main()
+		{
+			// Main idea is to multiply the fragColor with a value that will either
+			// make it brighter (towards 1) or darker (towards 0). At the end these colors 
+			// will get interpolated by the fragment shader. All normalization is done here
+			// in the fragment shader
+
+			// AMBIENT
+			float ambient = 0.15;
+			// expects a vec4 to consider the alpha 
+			//gl_FragColor = vec4(ambient*fragColor,1);
+
+			// DISTANCE LIGHT
+			// Need to normalize since we are looking for unit vectors
+			// Second normalize is where the directional light is facing/pointing
+			// The angle between them tells you how much the point is being lit
+			float d_light = dot(normalize(fakenormal),normalize(vec3(0.0,0.0,5.0)));
+			if(d_light < 0.0)
+			{
+				// Dont want negative light
+				// Ground will not be lit when facing up
+				d_light = 0.0;
+			}
+			//gl_FragColor = vec4(fragColor*(ambient + d_light),1);	// Only need to do this once
+
+			// POINT LIGHT
+			// The latter expression sets how big the radius of the point light is. That value is optional
+			float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*4.0/length(v_surfaceToLight);
+			if(p_light < 0.0)
+			{
+				p_light = 0.0;
+			}
+			//gl_FragColor = vec4(fragColor*(p_light + d_light + ambient),1);
+
+
+
+			float p_light2 = dot(normalize(fakenormal),normalize(v_surfaceToLight2))*2.0/length(v_surfaceToLight2);
+			if(p_light2 < 0.0)
+			{
+				p_light2 = 0.0;
+			}
+			gl_FragColor = vec4(fragColor*(p_light + p_light2 + d_light + ambient),1);
+
+
+
+			// SPOT LIGHT
+			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(5.0,0.0,0.0));
+			float spot_light_power = 0.06;
+			//0.98
+			if(spot_light >= 0.98)
+			{
+			
+				spot_light_power = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight));
+				if(spot_light_power < 0.0)
+				{
+					spot_light_power = 0.0;
+				}
+			
+			}
+			//gl_FragColor = vec4(fragColor*(spot_light_power),1);
+			//gl_FragColor = vec4(fragColor*(p_light + d_light + ambient + spot_light_power),1);
+
+		}
+		</script>
+		
+		<script src="webgl_interface.js"></script>		
+		<script src="BasicGameObject.js"></script>
+		<script>
+		class main
+		{	
+			constructor()
+			{
+				this.Visual = [];
+				this.Solid = [];
+				this.Trigger = [];
+				this.ObjectCounter = 0;			
+
+				this.myWEBGL = new WebGL_Interface();
+				this.myTriangle = [];
+				this.Keys = [];
+			}
+			
+			UpdateAll()
+			{
+				for(var i in this.Visual)
+				{
+					this.Visual[i].Update();
+				}
+				for(var i in this.Solid)
+				{
+					this.Solid[i].Update();
+				}
+				for(var i in this.Trigger)
+				{
+					this.Trigger[i].Update();
+				}
+			
+			}
+			
+			RenderAll()
+			{
+			gl.clear(gl.COLOR_BUFFER_BIT);
+				for(var i in this.Visual)
+				{
+					this.Visual[i].Render(this.myWEBGL.program);
+				}
+				for(var i in this.Solid)
+				{
+					this.Solid[i].Render(this.myWEBGL.program);
+				}
+				for(var i in this.Trigger)
+				{
+					this.Trigger[i].Render(this.myWEBGL.program);
+				}
+			
+			}
+			CheckCollision(loc1,rad1,loc2, rad2)
+			{
+				//Return true if they collide, false if they don't.
+				//You could also pass two objects in as well.
+				return false;
+			}
+			
+			CreateObject(type, prefab, loc, rot)
+			{
+				//type 0 = visual
+				//type 1 = solid
+				//type 2 = trigger
+				var temp = new prefab; //Yes this dark sorcery will work.
+				var id = "ID"+this.ObjectCounter;
+				this.ObjectCounter ++;
+				temp.id = id;
+				temp.prefab = prefab;
+				temp.loc = loc;
+				temp.rot = rot;
+					switch(type)
+					{
+						case 0:
+							this.Visual[id] = temp;
+						break;
+						case 1:
+							this.Solid[id] = temp;
+						break;
+						case 2:
+							this.Trigger[id] = temp;
+						break;
+						default:
+						break;
+					}		
+				//We can return the game object to the calling function
+				//Should the user want to set custom names or properties on it.
+				return temp;
+			}
+			
+			
+			DestroyObject(id)
+			{
+				if(id in this.Visual)
+				{
+					delete this.Visual[id];
+				}
+				if(id in this.Solid)
+				{
+					delete this.Solid[id];
+				}
+
+				if(id in this.Trigger)
+				{
+					delete this.Trigger[id];
+				}
+			}
+			
+			KeyDown(event)
+			{
+				this.Keys[String.fromCharCode(event.keyCode)] = true;
+				console.log(String.fromCharCode(event.keyCode) +" should be true - "+this.Keys[String.fromCharCode(event.keyCode)]);
+			}
+			
+			KeyUp(event)
+			{
+				this.Keys[String.fromCharCode(event.keyCode)] = false;
+				console.log(String.fromCharCode(event.keyCode) +" should be false - "+this.Keys[String.fromCharCode(event.keyCode)]);
+			}
+			
+			MouseClick(event)
+			{
+				var rect = canvas.getBoundingClientRect();
+				var realX = event.clientX - rect.left;
+				var realY = event.clientY - rect.top;
+				console.log(realX+","+realY);
+				var x = -1 + 2*realX/myCanvas.width;
+				var y = -1 + 2*(myCanvas.height - realY)/myCanvas.height;
+				console.log("The click occurred on "+x+","+y);
+			}
+
+			
+			//Static call backs go down here
+			//   |
+			//  \ /
+			//   v
+			static keyD(event)
+			{
+				m.KeyDown(event);
+			}
+			static keyU(event)
+			{
+				m.KeyUp(event);
+			}
+
+			static mouseH(event)
+			{
+				m.MouseClick(event);
+			}
+			
+			static MainLoop()
+			{
+				m.UpdateAll();
+				m.RenderAll();
+				requestAnimationFrame(main.MainLoop);
+			}
+
+		}
+		
+		
+		</script>
+		
+		
+
+	</Head>
+	<BODY style="padding: 15px;">
+		<HEADER>
+		
+		</HEADER>
+		
+		<CANVAS id="myCanvas" width="640" height="400" style = "border: 1px solid #000;">
+			Your browser does not support canvas.
+		</CANVAS>
+		
+		<button id="myB">Clear Canvas</button>
+		
+		<SCRIPT>
+			var canvas = document.getElementById("myCanvas");
+			var gl = canvas.getContext("webgl");
+			var m = new main();
+			window.onkeydown = main.keyD;
+			window.onkeyup = main.keyU;
+			canvas.addEventListener("click",main.mouseH);
+			for(var i =-10; i <=20; i ++)
+			{
+				for(var j =-10; j < 20; j ++)
+				{
+					m.CreateObject(2, D4, [j,i,-25],[0,0,0]);
+				}
+			}
+			m.CreateObject(2,Camera,[0,0,0],[0,0,0]);
+			
+			m.CreateObject(2,Hex,[0,0,-2],[0,0,0]);
+			m.CreateObject(2,Hex,[3,0,-2],[0,0,0]);
+			m.CreateObject(2,Hex,[-3,0,-2],[0,0,0]);
+			m.CreateObject(2,Ground,[0,-.5,0],[0,0,0]);
+			
+			requestAnimationFrame(main.MainLoop);	
+			
+			
+		</SCRIPT>
+		
+		<FOOTER>
+		
+		</FOOTER>
+
+		
+	</BODY>
+	
+</HTML>
+		
+		
