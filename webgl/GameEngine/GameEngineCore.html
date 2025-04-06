@@ -87,8 +87,8 @@
 				// we are scaling x y and z into the canonical view volume of -1 to 1
 				// the main idea is to scale our world down to this volume. Anything outside
 				// of the near plane is not rendered.
-                mat4 ComplexPerspective = mat4(fov/aspect,0.0,0.0,0.0,
-                                        	  0.0,fov,0.0,0.0,
+                mat4 ComplexPerspective = mat4(-1.0*fov/aspect,0.0,0.0,0.0,
+                                        	  0.0,-1.0*fov,0.0,0.0,
                                         	  0.0,0.0,-1.0*(f+n)/(f-n),-1.0,
                                         	  0.0,0.0,-2.0*f*n/(f-n),0.0);
                 

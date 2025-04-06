@@ -331,7 +331,8 @@
 							{
 								if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
 								{
-									this.OnTriggerEnter(m.Solid[so])
+									// OnTriggerEnter was here before
+									this.OnCollisionEnter(m.Solid[so])
 								
 									try
 									{
