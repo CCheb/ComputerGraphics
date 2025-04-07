@@ -217,7 +217,8 @@
 			//gl_FragColor = vec4(fragColor*(ambient + d_light),1);	// Only need to do this once
 
 			// POINT LIGHT
-			// The latter expression sets how big the radius of the point light is. That value is optional
+			// Latter expression specifies the distance fall off so that objects that are far away from the
+			// point light will be less lit. This value is optional
 			float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*4.0/length(v_surfaceToLight);
 			if(p_light < 0.0)
 			{
@@ -226,20 +227,23 @@
 			//gl_FragColor = vec4(fragColor*(p_light + d_light + ambient),1);
 
 
-
+			
 			float p_light2 = dot(normalize(fakenormal),normalize(v_surfaceToLight2))*2.0/length(v_surfaceToLight2);
 			if(p_light2 < 0.0)
 			{
 				p_light2 = 0.0;
 			}
-			gl_FragColor = vec4(fragColor*(p_light + p_light2 + d_light + ambient),1);
+			//gl_FragColor = vec4(fragColor*(p_light + p_light2 + d_light + ambient),1);
 
 
 
 			// SPOT LIGHT
-			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(5.0,0.0,0.0));
-			float spot_light_power = 0.06;
-			//0.98
+			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(0.0,1.0,0.0));
+			float spot_light_power = 0.0;
+			
+			// Specifies the cone size. If the object lies inside of the cone, that is, the dot product
+			// between the surface and the spot light is >= 98 then its going to be lit by the spotlight
+			// if not then dont light the object by the spotlight.
 			if(spot_light >= 0.98)
 			{
 			
@@ -251,7 +255,7 @@
 			
 			}
 			//gl_FragColor = vec4(fragColor*(spot_light_power),1);
-			//gl_FragColor = vec4(fragColor*(p_light + d_light + ambient + spot_light_power),1);
+			gl_FragColor = vec4(fragColor*(p_light + d_light + ambient + spot_light_power),1);
 
 		}
 		</script>
@@ -478,7 +482,8 @@
 			
 			m.CreateObject(1,Hex,[-10,-0.5,-4],[0,0,0],0.5,0.5,0.5);
 			m.CreateObject(1,Hex,[10,3,-4],[0,0,0],0.5,0.5,0.5);
-			
+			m.CreateObject(2,Bush,[0,0.5,-0.5],[0,0,0],0,0,0);
+
 			requestAnimationFrame(main.MainLoop);	
 			
 			
