@@ -495,7 +495,7 @@ class Hex extends GameObject
 	}
 	Update()
 	{
-		this.rot[1] += this.angVelocity[1];
+		//this.rot[1] += this.angVelocity[1];
 	}
 	
 }
@@ -918,6 +918,67 @@ class Rock extends GameObject
 	Update()
 	{
 		//nothing
+	}
+}
+
+class Torch extends GameObject
+{
+	constructor()
+	{
+		super(24, gl.TRIANGLES);
+		this.name = "Torch";
+		//this.angVelocity = [0,0,0];
+		//this.isTrigger = false;
+		this.buffer=gl.createBuffer();
+		//this.colorBuffer = gl.createBuffer();
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices = 
+		[
+			// Front face
+			-0.05,-0.05,0.1, 0.63,0.26,0.0,
+			0.05,-1.5,0.1, 0.63,0.26,0.0,
+			-0.05,-1.5,0.1, 0.63,0.26,0.0,
+			-0.05,-0.05,0.1, 0.63,0.26,0.0,
+			0.05,-0.05,0.1, 0.63,0.26,0.0,
+			0.05,-1.5,0.1, 0.63,0.26,0.0,
+
+			// Left face
+			-0.05,-0.05,0.0, 0.63,0.26,0.0,
+			-0.05,-1.5,0.1, 0.63,0.26,0.0,
+			-0.05,-1.5,0.0, 0.63,0.26,0.0,
+			-0.05,-0.05,0.0, 0.63,0.26,0.0,
+			-0.05,-0.05,0.1, 0.63,0.26,0.0,
+			-0.05,-1.5,0.1, 0.63,0.26,0.0,
+
+			// Right face
+			0.05,-0.05,0.0, 0.63,0.26,0.0,
+			0.05,-1.5,0.1, 0.63,0.26,0.0,
+			0.05,-1.5,0.0, 0.63,0.26,0.0,
+			0.05,-0.05,0.0, 0.63,0.26,0.0,
+			0.05,-0.05,0.1, 0.63,0.26,0.0,
+			0.05,-1.5,0.1, 0.63,0.26,0.0,
+
+			// Back face
+			-0.05,-0.05,0.0, 0.63,0.26,0.0,
+			0.05,-1.5,0.0, 0.63,0.26,0.0,
+			-0.05,-1.5,0.0, 0.63,0.26,0.0,
+			-0.05,-0.05,0.0, 0.63,0.26,0.0,
+			0.05,-0.05,0.0, 0.63,0.26,0.0,
+			0.05,-1.5,0.0, 0.63,0.26,0.0,
+			
+			
+
+		];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+	}
+
+	Update()
+	{
+		//Nothing
 	}
 }
 

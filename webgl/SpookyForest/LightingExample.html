@@ -28,6 +28,14 @@
 		
 		uniform vec3 worldLoc;
 		uniform vec3 worldRotation;
+
+		// Torch positions
+		uniform vec3 torchLoc1;
+		uniform vec3 torchLoc2;
+		uniform vec3 torchLoc3;
+		uniform vec3 torchLoc4;
+		uniform vec3 torchLoc5;
+
 		uniform float n;
 		uniform float f;
 		uniform float r;
@@ -36,6 +44,8 @@
 		uniform float aspect;
 		uniform float fov;
 
+		
+
 		//Lighting. The idea is to implement a simple version of the phong model
 		// Make array to index each light, or create variable for each light
 
@@ -43,11 +53,16 @@
 		// to specify direction in this case. You can implicitly think of these
 		// vectors being along side their respective vertex but it makes not difference
 		varying vec3 fakenormal;
-		varying vec3 v_surfaceToLight;	// L vector
-		varying vec3 v_surfaceToView;	// V vector
 		varying vec3 v_spot_surfaceToLight;	
+		varying vec3 v_surfaceToView;	// V vector
 		
+		// Point lights
+		varying vec3 v_surfaceToLight;	// L vector
 		varying vec3 v_surfaceToLight2;
+		varying vec3 v_surfaceToLight3;
+		varying vec3 v_surfaceToLight4;
+		varying vec3 v_surfaceToLight5;
+
 		
 		
 		vec4 MoveCamera(vec4 pos)
@@ -153,9 +168,14 @@
 			// Position doesnt have to be a constant, it can be a uniform
 			// rising the position of the surface in the y will cause the floor to be
 			// less lit. Remember: point - point = vector
-			v_surfaceToLight = vec3(0,0,-4) - worldSpace.xyz;
+			// vec3(0,0,-4)
+			v_surfaceToLight = torchLoc1 - worldSpace.xyz;
+			v_surfaceToLight2 = torchLoc2 - worldSpace.xyz;
+			v_surfaceToLight3 = torchLoc3 - worldSpace.xyz;
+			v_surfaceToLight4 = torchLoc4 - worldSpace.xyz;
+			v_surfaceToLight5 = torchLoc5 - worldSpace.xyz;
 
-			v_surfaceToLight2 = vec3(-5,0,0) - worldSpace.xyz;
+			//v_surfaceToLight2 = vec3(-5,0,0) - worldSpace.xyz;
 
 			// To make the light move with the world as the camera rotates and moves
 			// The vector that points from the vertex over to the camera. Can be used for calculating specularity
@@ -183,12 +203,14 @@
 
 		// As long as their are facing in the correct direction, we should be good on lighting
 		varying vec3 fakenormal;
-		varying vec3 v_surfaceToLight;
-		varying vec3 v_surfaceToView;
 		varying vec3 v_spot_surfaceToLight;
-
+		varying vec3 v_surfaceToView;
 		
+		varying vec3 v_surfaceToLight;
 		varying vec3 v_surfaceToLight2;
+		varying vec3 v_surfaceToLight3;
+		varying vec3 v_surfaceToLight4;
+		varying vec3 v_surfaceToLight5;
 
 
 		void main()
@@ -219,7 +241,7 @@
 			// POINT LIGHT
 			// Latter expression specifies the distance fall off so that objects that are far away from the
 			// point light will be less lit. This value is optional
-			float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*4.0/length(v_surfaceToLight);
+			float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*8.0/length(v_surfaceToLight);
 			if(p_light < 0.0)
 			{
 				p_light = 0.0;
@@ -228,13 +250,31 @@
 
 
 			
-			float p_light2 = dot(normalize(fakenormal),normalize(v_surfaceToLight2))*2.0/length(v_surfaceToLight2);
+			float p_light2 = dot(normalize(fakenormal),normalize(v_surfaceToLight2))*8.0/length(v_surfaceToLight2);
 			if(p_light2 < 0.0)
 			{
 				p_light2 = 0.0;
 			}
 			//gl_FragColor = vec4(fragColor*(p_light + p_light2 + d_light + ambient),1);
 
+			float p_light3 = dot(normalize(fakenormal),normalize(v_surfaceToLight3))*8.0/length(v_surfaceToLight3);
+			if(p_light3 < 0.0)
+			{
+				p_light3 = 0.0;
+			}
+
+			float p_light4 = dot(normalize(fakenormal),normalize(v_surfaceToLight4))*8.0/length(v_surfaceToLight4);
+			if(p_light4 < 0.0)
+			{
+				p_light4 = 0.0;
+			}
+
+			float p_light5 = dot(normalize(fakenormal),normalize(v_surfaceToLight5))*8.0/length(v_surfaceToLight5);
+			if(p_light5 < 0.0)
+			{
+				p_light5 = 0.0;
+			}
+			
 
 
 			// SPOT LIGHT
@@ -255,7 +295,7 @@
 			
 			}
 			//gl_FragColor = vec4(fragColor*(spot_light_power),1);
-			gl_FragColor = vec4(fragColor*(p_light + d_light + ambient + spot_light_power),1);
+			gl_FragColor = vec4(fragColor*(p_light + p_light2 + p_light3 + p_light4 + p_light5 + d_light + ambient + spot_light_power),1);
 
 		}
 		</script>
@@ -275,6 +315,35 @@
 				this.myWEBGL = new WebGL_Interface();
 				this.myTriangle = [];
 				this.Keys = [];
+
+				for(var i = 0; i < 60; i++)
+				{
+					var randX = Math.floor(Math.random() * 61) - 30;
+					var randZ = Math.floor(Math.random() * 101) - 105;
+
+					this.CreateObject(1,Hex,[randX,0,randZ],[0,0,0],0.5,0.5,0.5);
+					this.CreateObject(
+						1,
+						Rock,
+						[Math.floor(Math.random() * 61) - 30, 0, Math.floor(Math.random() * 101) - 105],
+						[0,0,0],
+						0.7,0.8,0.8
+					)
+
+				}
+
+
+				this.CreateObject(1,Camera,[0,0,0],[0,0,0],0.3,0.3,0.3);
+				this.CreateObject(2,Ground,[0,-.5,0],[0,0,0],0,0,0);
+
+				// Setting up a random location for the point lights
+				for(var i = 0; i < 5; i++)
+				{
+					var torch = this.CreateObject(2,Torch,[Math.floor(Math.random() * 61) - 30,0,Math.floor(Math.random() * 101) - 105],[0,0,0],0.1,1.6,0.1);
+					var torchLoc = gl.getUniformLocation(this.myWEBGL.program,'torchLoc'+(i+1));
+					gl.uniform3fv(torchLoc, torch.loc);
+				}
+			
 			}
 			
 			UpdateAll()
@@ -473,17 +542,7 @@
 				}
 			}
 			*/
-			m.CreateObject(1,Camera,[0,0,0],[0,0,0],0.3,0.3,0.3);
 			
-			m.CreateObject(1,Hex,[0,0,-2],[0,0,0],0.5,0.5,0.5);
-			m.CreateObject(1,Hex,[3,0,-2],[0,0,0],0.5,0.5,0.5);
-			m.CreateObject(1,Hex,[-3,0,-2],[0,0,0],0.5,0.5,0.5);
-			m.CreateObject(2,Ground,[0,-.5,0],[0,0,0],0,0,0);
-			
-			m.CreateObject(1,Hex,[-10,-0.5,-4],[0,0,0],0.5,0.5,0.5);
-			m.CreateObject(1,Hex,[10,3,-4],[0,0,0],0.5,0.5,0.5);
-			//m.CreateObject(2,Bush,[0,1,-2],[0,0,0],0,0,0);
-			m.CreateObject(1,Rock,[2,0,-5],[0,0,0],0.7,0.8,0.8);
 
 			requestAnimationFrame(main.MainLoop);	
 			
