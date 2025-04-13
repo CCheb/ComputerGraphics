@@ -87,7 +87,7 @@ class GameObject
 			{
 				if(m.Solid[so] != this)
 				{
-					if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+					if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].name, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
 					{
 						this.OnCollisionEnter(m.Solid[so])
 					
@@ -114,7 +114,7 @@ class GameObject
 			{
 				// If we already collided with the solid object earlier and it has a OnTriggerEnter then
 				// we can simply store it and use it here
-				if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+				if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].name, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
 				{
 					// If there is a detected collision then call the TriggerEnter function from the
 					// object thats listening for collisions, in this case the trigger object
@@ -132,7 +132,7 @@ class GameObject
 			for(var to in m.Trigger)
 			{ 	//this should be correct. It is trying to check for trigger objects insted of solid objects
 				if(this != m.Trigger[to]){
-					if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY, m.Trigger[to].cRadZ))
+					if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Trigger[to].name, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY, m.Trigger[to].cRadZ))
 					{
 						this.OnTriggerEnter(m.Trigger[to]);
 						try
@@ -1047,86 +1047,203 @@ class Camera extends GameObject
 	{
 		if(other.name == "Hex")
 			console.log("Hex collided with camera");
+
+		if(other.name == "Boundary")
+			console.log("Boundary collided with camera");
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Hitbox")
+			console.log("Hitbox collided with Camera");
 	}
 	
 	
 }
 
-
-class D4 extends GameObject
+class Boundary extends GameObject
 {
 	constructor()
 	{
-		super(12, gl.TRIANGLES);
-		this.name = "D4";
-		this.isTrigger = true;
-		this.buffer=gl.createBuffer();
-		 gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		 
-		 //Now we want to add color to our vertices information.
-		 this.vertices =
-		 [	
-		 -.5,-.5,0,0,0,0,
-		 .5,-.5,0,1,0,0,
-		 0,.5,0,1,0,0,
-		 
-		 -.5,-.5,0,0,1,0,
-		 0,0,-.5,0,1,0,
-		 .5,-.5,0,0,1,0,
-		 
-		 0,0,-.5,0,0,1,
-		 .5,-.5,0,0,0,1,
-		 0,.5,0,0,0,1,
-		 
-		 0,.5,0,1,1,0,
-		 0,0,-.5,1,1,0,
-		 -.5,-.5,0,1,1,0
-		];
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
-		this.loc = [0.0,0.0,0.0];
-		this.rot = [0.0,0.0,0.0];
-		this.angVelocity = [0,.01,0];
+		super(0,gl.TRIANGLES);
+		this.name = "Boundary";
+		this.loc = [0,0,0];
+		this.rot = [0,0,0];
 	}
-	Render(program)
-	{
-		//First we bind the buffer for triangle 1
-		var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		var size = 3;          // 2 components per iteration
-		var type = gl.FLOAT;   // the data is 32bit floats
-		var normalize = false; // don't normalize the data
-		var stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element     // 0 = move forward size * sizeof(type) each iteration to get the next position
-		var offset = 0;        // start at the beginning of the buffer
-		gl.enableVertexAttribArray(positionAttributeLocation);
-		gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
-			
-		
-		//Now we have to do this for color
-		var colorAttributeLocation = gl.getAttribLocation(program,"vert_color");
-		//We don't have to bind because we already have the correct buffer bound.
-		size = 3;
-		type = gl.FLOAT;
-		normalize = false;
-		stride = 6*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
-		offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
-		gl.enableVertexAttribArray(colorAttributeLocation);
-		gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
-				
-		var tranLoc  = gl.getUniformLocation(program,'transform');
-		gl.uniform3fv(tranLoc,new Float32Array(this.loc));
-		var thetaLoc = gl.getUniformLocation(program,'rotation');
-		gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
-		
-		
-		var primitiveType = gl.TRIANGLES;
-		offset = 0;
-		var count = 12;
-		gl.drawArrays(primitiveType, offset, count);
-	}
+
 	Update()
 	{
+		// Nothing
+	}
+
+	Render(program)
+	{
+		// Nothing
+
+	}
+}
+
+class Enemy extends GameObject
+{
+	constructor()
+	{
+		super(24, gl.TRIANGLES);
+		this.name = "Enemy";
+		this.isTrigger = true;
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+	
+		this.vertices =
+		[	
+			// Top
+			-0.5, 0.5, -0.5,   0.5, 0.5, 0.5,
+			-0.5, 0.5, 0.5,    0.5, 0.5, 0.5,
+			0.5, 0.5, 0.5,     0.5, 0.5, 0.5,
+			0.5, 0.5, -0.5,    0.5, 0.5, 0.5,
+
+			// Left
+			-0.5, 0.5, 0.5,    0.75, 0.25, 0.5,
+			-0.5, -0.5, 0.5,   0.75, 0.25, 0.5,
+			-0.5, -0.5, -0.5,  0.75, 0.25, 0.5,
+			-0.5, 0.5, -0.5,   0.75, 0.25, 0.5,
+
+			// Right
+			0.5, 0.5, 0.5,    0.25, 0.25, 0.75,
+			0.5, -0.5, 0.5,   0.25, 0.25, 0.75,
+			0.5, -0.5, -0.5,  0.25, 0.25, 0.75,
+			0.5, 0.5, -0.5,   0.25, 0.25, 0.75,
+
+			// Front
+			0.5, 0.5, 0.5,    1.0, 0.0, 0.15,
+			0.5, -0.5, 0.5,    1.0, 0.0, 0.15,
+			-0.5, -0.5, 0.5,    1.0, 0.0, 0.15,
+			-0.5, 0.5, 0.5,    1.0, 0.0, 0.15,
+
+			// Back
+			0.5, 0.5, -0.5,    0.0, 1.0, 0.15,
+			0.5, -0.5, -0.5,    0.0, 1.0, 0.15,
+			-0.5, -0.5, -0.5,    0.0, 1.0, 0.15,
+			-0.5, 0.5, -0.5,    0.0, 1.0, 0.15,
+
+			// Bottom
+			-0.5, -0.5, -0.5,   0.5, 0.5, 1.0,
+			-0.5, -0.5, 0.5,    0.5, 0.5, 1.0,
+			0.5, -0.5, 0.5,     0.5, 0.5, 1.0,
+			0.5, -0.5, -0.5,    0.5, 0.5, 1.0
+			
+		];
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+		//this.velocity = [0.007,0,0];	// We want enemy object to already be moving off rip
+		this.sign = 0;		// Sign helps in determining in which direction to go when colliding with a wall
+		// Move the enemy at constant speed
+		this.velocity = [0.08,0,0];
+		// Variable for holding the uniform that the enemy is connected to
+		this.uniform;
+		// Composition
+		this.hitbox;
+		
+	}
+
+	Update()
+	{
+		this.hitbox.loc = [this.loc[0], 0, this.loc[2]];
+		
+		this.Move();
+
+		var enemyLoc = gl.getUniformLocation(m.myWEBGL.program,this.uniform);
+		gl.uniform3fv(enemyLoc, this.loc);
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Boundary")
+		{
+			console.log("wall collision");
+			// 0 == positive movement (right)
+			if(this.sign == 0)
+			{
+				this.sign = 1;
+			}
+			else	// left movement (left)
+			{
+				this.sign = 0;
+			}
+			this.velocity = this.velocity.map(value => value * -1);
+		}
+
+		if(other.name == "Camera")
+		{
+			console.log("Camera collided with enemy");
+			
+		}
+	}
+
+}
+
+class Hitbox extends GameObject
+{
+	constructor()
+	{
+		super(0,gl.TRIANGLES);
+		this.name = "Hitbox";
+		this.isTrigger = true;
+		this.loc = [0,0,0];
+		this.rot = [0,0,0];
+	}
+
+	Update()
+	{
+		// Make the hitbox look out for any camera collisions
 		this.Move();
 	}
-	
+
+	Render(program)
+	{
+		// Nothing
+	}
+
+	OnTriggerEnter(other)
+	{
+		// If the camera collides with the spotlight then send it back to spawn
+		if(other.name == "Camera")
+		{
+			other.loc = [0,0,0];
+		}
+	}
 }
+
+class Moon extends GameObject
+{
+	constructor()
+	{
+		super(6,gl.TRIANGLES);
+		this.name = "Moon";
+
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+	
+		this.vertices =
+		[	
+			-45.0,45.0,0, 0.99,0.99,0.99,
+			45.0,-45.0,0, 0.99,0.99,0.99,
+			-45.0,-45.0,0, 0.99,0.99,0.99,
+
+			-45.0,45.0,0, 0.99,0.99,0.99,
+			45.0,45.0,0, 0.99,0.99,0.99,
+			45.0,-45.0,0, 0.99,0.99,0.99,
+			
+		];
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+		
+
+	}
+
+	Update()
+	{
+		// Nothing
+	}
+}
+
 

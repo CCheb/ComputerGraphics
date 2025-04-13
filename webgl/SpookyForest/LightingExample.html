@@ -36,6 +36,13 @@
 		uniform vec3 torchLoc4;
 		uniform vec3 torchLoc5;
 
+		// Spotlight positions
+		uniform vec3 spotLoc1;
+		uniform vec3 spotLoc2;
+		uniform vec3 spotLoc3;
+		uniform vec3 spotLoc4;
+		uniform vec3 spotLoc5;
+
 		uniform float n;
 		uniform float f;
 		uniform float r;
@@ -53,7 +60,6 @@
 		// to specify direction in this case. You can implicitly think of these
 		// vectors being along side their respective vertex but it makes not difference
 		varying vec3 fakenormal;
-		varying vec3 v_spot_surfaceToLight;	
 		varying vec3 v_surfaceToView;	// V vector
 		
 		// Point lights
@@ -62,7 +68,13 @@
 		varying vec3 v_surfaceToLight3;
 		varying vec3 v_surfaceToLight4;
 		varying vec3 v_surfaceToLight5;
-
+		
+		// Spot lights
+		varying vec3 v_spot_surfaceToLight;	
+		varying vec3 v_spot_surfaceToLight2;
+		varying vec3 v_spot_surfaceToLight3;
+		varying vec3 v_spot_surfaceToLight4;
+		varying vec3 v_spot_surfaceToLight5;
 		
 		
 		vec4 MoveCamera(vec4 pos)
@@ -180,13 +192,18 @@
 			// To make the light move with the world as the camera rotates and moves
 			// The vector that points from the vertex over to the camera. Can be used for calculating specularity
 			v_surfaceToView = worldLoc - worldSpace.xyz;
-			v_spot_surfaceToLight = vec3(5.0,0.0,-2.0) - worldSpace.xyz;
+			// vec3(5.0,0.0,-2.0)
+
+			v_spot_surfaceToLight = spotLoc1 - worldSpace.xyz;
+			v_spot_surfaceToLight2 = spotLoc2 - worldSpace.xyz;
+			v_spot_surfaceToLight3 = spotLoc3 - worldSpace.xyz;
+			v_spot_surfaceToLight4 = spotLoc4 - worldSpace.xyz;
+			v_spot_surfaceToLight5 = spotLoc5 - worldSpace.xyz;
 
 			fragColor = vert_color;
 
 			vec4 cameraSpace = MoveCamera(worldSpace);
 			gl_Position = ApplyProjection(cameraSpace);
-
 
 
 			//fragColor = vert_color;
@@ -203,7 +220,6 @@
 
 		// As long as their are facing in the correct direction, we should be good on lighting
 		varying vec3 fakenormal;
-		varying vec3 v_spot_surfaceToLight;
 		varying vec3 v_surfaceToView;
 		
 		varying vec3 v_surfaceToLight;
@@ -211,7 +227,12 @@
 		varying vec3 v_surfaceToLight3;
 		varying vec3 v_surfaceToLight4;
 		varying vec3 v_surfaceToLight5;
-
+		
+		varying vec3 v_spot_surfaceToLight;
+		varying vec3 v_spot_surfaceToLight2;
+		varying vec3 v_spot_surfaceToLight3;
+		varying vec3 v_spot_surfaceToLight4;
+		varying vec3 v_spot_surfaceToLight5;
 
 		void main()
 		{
@@ -221,7 +242,7 @@
 			// in the fragment shader
 
 			// AMBIENT
-			float ambient = 0.15;
+			float ambient = 0.1;
 			// expects a vec4 to consider the alpha 
 			//gl_FragColor = vec4(ambient*fragColor,1);
 
@@ -229,7 +250,7 @@
 			// Need to normalize since we are looking for unit vectors
 			// Second normalize is where the directional light is facing/pointing
 			// The angle between them tells you how much the point is being lit
-			float d_light = dot(normalize(fakenormal),normalize(vec3(0.0,0.0,5.0)));
+			float d_light = 0.25*(dot(normalize(fakenormal),normalize(vec3(20.0,5.0,20.0))));
 			if(d_light < 0.0)
 			{
 				// Dont want negative light
@@ -278,13 +299,13 @@
 
 
 			// SPOT LIGHT
-			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(0.0,1.0,0.0));
 			float spot_light_power = 0.0;
+			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(0.0,1.0,0.0));
 			
 			// Specifies the cone size. If the object lies inside of the cone, that is, the dot product
 			// between the surface and the spot light is >= 98 then its going to be lit by the spotlight
-			// if not then dont light the object by the spotlight.
-			if(spot_light >= 0.98)
+			// if not then dont light the object by the spotlight. 98
+			if(spot_light >= 0.88)
 			{
 			
 				spot_light_power = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight));
@@ -294,8 +315,61 @@
 				}
 			
 			}
+
+			
+
+			float spot_light_power2 = 0.0;
+			float spot_light2 = dot(normalize(v_spot_surfaceToLight2),vec3(0.0,1.0,0.0));
+			
+			if(spot_light2 >= 0.88)
+			{
+				spot_light_power2 = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight2));
+				if(spot_light_power2 < 0.0)
+				{
+					spot_light_power2 = 0.0;
+				}
+			
+			}
+
+
+			float spot_light_power3 = 0.0;
+			float spot_light3 = dot(normalize(v_spot_surfaceToLight3),vec3(0.0,1.0,0.0));
+			if(spot_light3 >= 0.88)
+			{
+				spot_light_power3 = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight3));
+				if(spot_light_power3 < 0.0)
+				{
+					spot_light_power3 = 0.0;
+				}
+			
+			}
+
+			float spot_light_power4 = 0.0;
+			float spot_light4 = dot(normalize(v_spot_surfaceToLight4),vec3(0.0,1.0,0.0));
+			if(spot_light4 >= 0.88)
+			{
+			
+				spot_light_power4 = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight4));
+				if(spot_light_power4 < 0.0)
+				{
+					spot_light_power4 = 0.0;
+				}
+			
+			}
+
+			float spot_light_power5 = 0.0;
+			float spot_light5 = dot(normalize(v_spot_surfaceToLight5),vec3(0.0,1.0,0.0));
+			if(spot_light5 >= 0.88)
+			{
+				spot_light_power5 = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight5));
+				if(spot_light_power5 < 0.0)
+				{
+					spot_light_power5 = 0.0;
+				}
+			}
+
 			//gl_FragColor = vec4(fragColor*(spot_light_power),1);
-			gl_FragColor = vec4(fragColor*(p_light + p_light2 + p_light3 + p_light4 + p_light5 + d_light + ambient + spot_light_power),1);
+			gl_FragColor = vec4(fragColor*(p_light + p_light2 + p_light3 + p_light4 + p_light5 + d_light + ambient + spot_light_power + spot_light_power2 + spot_light_power3 + spot_light_power4 + spot_light_power5),1);
 
 		}
 		</script>
@@ -336,12 +410,35 @@
 				this.CreateObject(1,Camera,[0,0,0],[0,0,0],0.3,0.3,0.3);
 				this.CreateObject(2,Ground,[0,-.5,0],[0,0,0],0,0,0);
 
+				this.CreateObject(1,Boundary,[0,0,-110],[0,0,0],35,8,1);
+				this.CreateObject(1,Boundary,[-35,0,-55],[0,1.56,0],1,8,58);
+				this.CreateObject(1,Boundary,[35,0,-55],[0,-1.56,0],1,8,58);
+
+				//var enemy1 = this.CreateObject(2,Enemy,[0,6,-20],[0,0,0],0.5,0.5,0.5);
+				//enemy1.uniform = 'spotLoc1';
+				//enemy1.hitbox = this.CreateObject(2,Hitbox,[enemy1.loc[0],0,enemy1.loc[2]],[0,0,0],3,3,3);
+
+				//this.CreateObject(2,Hitbox,[0,0,-3],[0,0,0],0.5,0.5,0.5);
+				
+				//var enemyLoc = gl.getUniformLocation(this.myWEBGL.program,'spotLoc1');
+				//gl.uniform3fv(enemyLoc, enemy1.loc);
+
+				// Creating the moon
+				this.CreateObject(0,Moon,[300,160,300],[0,4,0],0.5,0.5,0);
+
 				// Setting up a random location for the point lights
 				for(var i = 0; i < 5; i++)
 				{
+					// Generating 5 random torches
 					var torch = this.CreateObject(2,Torch,[Math.floor(Math.random() * 61) - 30,0,Math.floor(Math.random() * 101) - 105],[0,0,0],0.1,1.6,0.1);
 					var torchLoc = gl.getUniformLocation(this.myWEBGL.program,'torchLoc'+(i+1));
 					gl.uniform3fv(torchLoc, torch.loc);
+
+					// Generating 5 random enemies with spotlights
+					var enemy = this.CreateObject(2,Enemy,[Math.floor(Math.random() * 61) - 30,6,Math.floor(Math.random() * 101) - 105],[0,0,0],0.5,0.5,0.5);
+					// Have to reference the uniform multiple times
+					enemy.uniform = 'spotLoc'+(i+1);
+					enemy.hitbox = this.CreateObject(2,Hitbox,[enemy.loc[0],0,enemy.loc[2]],[0,0,0],3,3,3);
 				}
 			
 			}
@@ -381,7 +478,7 @@
 			
 			}
 			
-			CheckCollision(name1,loc1,rad1X,rad1Y,rad1Z,loc2,rad2X,rad2Y,rad2Z)
+			CheckCollision(name1,loc1,rad1X,rad1Y,rad1Z,name2,loc2,rad2X,rad2Y,rad2Z)
 			{
 				// X, Y and Z radiuses for each object
 				var totalRange = rad1X + rad2X;
@@ -389,20 +486,37 @@
 				var totalRangeZ = rad1Z + rad2Z;
 				// Return true if they collide, false if they don't.
 				
+				// Need to flip the z of the camera because internally, its moving in the positive z direction when
+				// W is pressed. This will cause issues because its initially looking in the negative z direction
 				if(name1 == "Camera")
 				{
-					if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]+loc2[2]) < totalRangeZ)
+					
+					if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(-1*loc1[2]-loc2[2]) < totalRangeZ)
 						return true;
 
 					return false;
 				}
-				// Its important to add both locations when checking the z axis. If gem is at -5, doing loc1[2] - loc2[2] will only
-				// cause the distance to grow as we approach the gem which is the opposite of what we want. Instead we subtract and then 
-				// take the absolute value. This should also probably apply to x and y in 3d space
-				if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]-loc2[2]) < totalRangeZ)
-					return true;
+				else if(name2 == "Camera")
+				{
+					if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]-(-1*loc2[2])) < totalRangeZ)
+						return true;
 
-				return false;
+					return false;
+
+				}
+				else
+				{
+					// Its important to add both locations when checking the z axis. If gem is at -5, doing loc1[2] - loc2[2] will only
+					// cause the distance to grow as we approach the gem which is the opposite of what we want. Instead we subtract and then 
+					// take the absolute value. This should also probably apply to x and y in 3d space loc1[2]-loc2[2]
+					if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]-loc2[2]) < totalRangeZ)
+						return true;
+
+					return false;
+
+				}
+				
+				
 			}
 			
 			CreateObject(type, prefab, loc, rot, rX, rY, rZ)
