@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Escape the Maze!</title>
+
+        <script id="2dVertexShader" type="notjs">
+            attribute vec4 a_position;	
+
+            attribute vec2 a_texcoord;
+            varying vec2 v_texcoord;
+                    
+            uniform vec3 transform;
+            uniform vec3 rotation;		
+            
+            uniform vec3 worldLoc;
+            uniform vec3 worldRotation;
+
+            uniform bool FaceCam;
+
+            uniform vec3 torchLoc1;
+            uniform vec3 torchLoc2;
+            uniform vec3 torchLoc3;
+            uniform vec3 torchLoc4;
+            uniform vec3 torchLoc5;
+            uniform vec3 torchLoc6;
+            uniform vec3 torchLoc7;
+            uniform vec3 torchLoc8;
+            uniform vec3 torchLoc9;
+            uniform vec3 torchLoc10;
+
+            uniform float n;
+            uniform float f;
+            uniform float r;
+            uniform float t;
+
+            uniform float aspect;
+            uniform float fov;
+
+            
+            varying vec3 fakenormal;
+            varying vec3 v_surfaceToLight;	// L vector
+            varying vec3 v_surfaceToLight2;
+            varying vec3 v_surfaceToLight3;
+            varying vec3 v_surfaceToLight4;
+            varying vec3 v_surfaceToLight5;
+            varying vec3 v_surfaceToLight6;	
+            varying vec3 v_surfaceToLight7;
+            varying vec3 v_surfaceToLight8;
+            varying vec3 v_surfaceToLight9;
+            varying vec3 v_surfaceToLight10;
+            
+            
+            vec4 MoveCamera(vec4 pos)
+            {
+                vec3 cw = cos(worldRotation);
+                vec3 sw = sin(worldRotation);
+                mat4 translateView = mat4(1.0,0.0,0.0,0.0,
+                                        0.0,1.0,0.0,0.0,
+                                        0.0,0.0,1.0,0.0,
+                                        -1.0*worldLoc.x,-1.0*worldLoc.y,worldLoc.z,1.0
+                                        );
+                            
+                mat4 rotateView = mat4(cw.y,0.0,-1.0*sw.y,0.0,
+                                        0.0,1.0,0.0,0.0,
+                                        sw.y,0.0,cw.y,0.0,
+                                        0.0,0.0,0.0,1.0);
+                return rotateView*translateView*pos;
+            }
+            
+            vec4 ApplyProjection(vec4 pos)
+            {
+                mat4 SimpleOrtho = mat4  (1,0.0,0.0,0.0,
+                                0.0,1,0.0,0.0, 
+                                0.0,0.0,1,0.0, 
+                                0.0,0.0,0.0,1.0);
+
+                // Negative x and y will flip the world back to normal, if we go that route
+                mat4 ComplexPerspective = mat4(
+                                            -1.0*fov/aspect, 0.0,0.0,0.0,
+                                            0.0, -1.0*fov,0.0,0.0,
+                                            0.0,0.0,-1.0*(f+n)/(f-n),-1.0,
+                                            0.0,0.0,-2.0*f*n/(f-n),0.0
+                                            );
+                mat4 ComplexOrtho = mat4(	1.0/r,0.0,0.0,0.0,
+                                            0.0,1.0/t,0.0,0.0,	//If I make the y -1.0/t I will invert the Y-axis.
+                                            0.0,0.0,1.0,0.0,
+                                            0.0,0.0,0.0,1.0	//If I make the x and y translate -1, -1 I can put 0,0 in the bottom right.
+                                        );
+                                        
+                mat4 SimplePerspective = 	mat4(
+                                    1.0,0.0,0.0,0.0,
+                                    0.0,1.0,0.0,0.0,
+                                    0.0,0.0,-1.0,-1.0,
+                                    0.0,0.0,-2.0,0.0			
+                                    );
+                return ComplexPerspective*pos;
+            }
+            
+            vec4 PositionObject(vec4 pos)
+            {
+                mat4 translateM = mat4(1.0,0.0,0.0,0.0,
+                            0.0,1.0,0.0,0.0,
+                            0.0,0.0,1.0,0.0,
+                            transform.x,transform.y,transform.z,1.0);
+                return translateM*pos;	
+            }
+
+            vec4 LookAt(vec3 F, vec3 U, vec4 pos)
+		    {
+		    	//precision mediump float;
+		    	vec3 R = cross(F,U);
+		    	mat4 LookAt = mat4(R.x,R.y,R.z,0.0,
+		    						U.x,U.y,U.z,0.0,
+		    						F.x,F.y,F.z,0.0,
+		    						0.0,0.0,0.0,1.0);
+            
+		    	return LookAt*pos;	
+		    }
+
+            //Use a function to Rotate the object
+            vec4 RotateObject(vec4 pos)
+            {
+                //This is a nice trick
+                vec3 c = cos(rotation);
+                vec3 s = sin(rotation);
+               
+               
+
+                //mat4 rotateX = mat4();
+                mat4 rotateY = mat4(c.y,0.0,-1.0*s.y,0.0,
+                                    0.0,1.0,0.0,0.0,
+                                    s.y,0.0,c.y,0.0,
+                                    0.0,0.0,0.0,1.0);
+                //mat4 rotateZ = mat4();
+                return rotateY*pos;
+            }
+            void main()
+            {
+            
+            
+                // Idea with fake normals is to have them spawn from the
+                // center of the object and have them shoot out from there
+                // these are not real normals. Ideally, each vertex should have its
+                // own normals. We are mimicking an object with spherical normals
+
+                // Spherical effect on objects
+                // from edge to center
+                // If the vertex from an object is greater than 5 then we consider this object
+                // to be the floor and thus set its normal facing directly up
+                if(length(a_position)<5.0)
+                {
+                    //fakenormal = vec3(a_position);
+                    // need to adjust the normal to where the
+                    // verticie is facing
+                    fakenormal = RotateObject(a_position).xyz;
+
+                    
+                }
+                else
+                {
+                    // Ground planes normal will be up always
+                    fakenormal = vec3(0.0,1.0,0.0);
+                }
+            
+
+                vec4 worldSpace = vec4(0.0,0.0,0.0,1.0);
+                
+			    // Going off of a simple bool uniform thats set by the object that wants
+			    // to be billboarded
+			    if(FaceCam)
+			    {
+			    	// Look at rotation
+			    	vec3 F = normalize(vec3(worldLoc.x,worldLoc.y,-1.0*worldLoc.z)- transform);
+			    	vec3 U = vec3(0.0,1.0,0.0);
+			    	worldSpace = PositionObject(LookAt(F,U,a_position));
+			    }
+			    else
+			    {
+			    	// Normal rotation 
+			    	worldSpace = PositionObject(RotateObject(a_position));
+			    }
+                
+
+                v_surfaceToLight = torchLoc1 - worldSpace.xyz;
+                v_surfaceToLight2 = torchLoc2 - worldSpace.xyz;
+                v_surfaceToLight3 = torchLoc3 - worldSpace.xyz;
+                v_surfaceToLight4 = torchLoc4 - worldSpace.xyz;
+                v_surfaceToLight5 = torchLoc5 - worldSpace.xyz;
+                v_surfaceToLight6 = torchLoc6 - worldSpace.xyz;
+                v_surfaceToLight7 = torchLoc7 - worldSpace.xyz;
+                v_surfaceToLight8 = torchLoc8 - worldSpace.xyz;
+                v_surfaceToLight9 = torchLoc9 - worldSpace.xyz;
+                v_surfaceToLight10 = torchLoc10 - worldSpace.xyz;
+               
+
+                v_texcoord = a_texcoord;
+
+                vec4 cameraSpace = MoveCamera(worldSpace);
+                gl_Position = ApplyProjection(cameraSpace);
+
+            }		
+
+        </script>
+
+        <script id="2dFragmentShader" type="notjs">
+            //Fragment shaders do not have precision so we have to set it.
+            precision mediump float;
+            //varying vec3 fragColor;
+
+            varying vec2 v_texcoord;
+            uniform sampler2D sampler;
+
+            varying vec3 fakenormal;
+            varying vec3 v_surfaceToLight;
+            varying vec3 v_surfaceToLight2;
+            varying vec3 v_surfaceToLight3;
+            varying vec3 v_surfaceToLight4;
+            varying vec3 v_surfaceToLight5;
+            varying vec3 v_surfaceToLight6;
+            varying vec3 v_surfaceToLight7;
+            varying vec3 v_surfaceToLight8;
+            varying vec3 v_surfaceToLight9;
+            varying vec3 v_surfaceToLight10;
+
+            void main()
+            {
+            
+                vec4 tempColor = texture2D(sampler,v_texcoord);
+			    // Applying transparency filter
+			    if(tempColor.w<1.0)
+			    {
+			    	// Render or not
+			    	discard;
+			    }
+
+                // LIGHTNING
+                float ambient = 0.1;
+
+                // POINT LIGHT
+                // Latter expression specifies the distance fall off so that objects that are far away from the
+                // point light will be less lit. This value is optional
+                float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*8.0/length(v_surfaceToLight);
+                if(p_light < 0.0)
+                {
+                    p_light = 0.0;
+                }
+
+                float p_light2 = dot(normalize(fakenormal),normalize(v_surfaceToLight2))*8.0/length(v_surfaceToLight2);
+                if(p_light2 < 0.0)
+                {
+                    p_light2 = 0.0;
+                }
+
+                float p_light3 = dot(normalize(fakenormal),normalize(v_surfaceToLight3))*8.0/length(v_surfaceToLight3);
+                if(p_light3 < 0.0)
+                {
+                    p_light3 = 0.0;
+                }
+
+                float p_light4 = dot(normalize(fakenormal),normalize(v_surfaceToLight4))*8.0/length(v_surfaceToLight4);
+                if(p_light4 < 0.0)
+                {
+                    p_light4 = 0.0;
+                }
+
+                float p_light5 = dot(normalize(fakenormal),normalize(v_surfaceToLight5))*8.0/length(v_surfaceToLight5);
+                if(p_light5 < 0.0)
+                {
+                    p_light5 = 0.0;
+                }
+
+                float p_light6 = dot(normalize(fakenormal),normalize(v_surfaceToLight6))*8.0/length(v_surfaceToLight6);
+                if(p_light6 < 0.0)
+                {
+                    p_light6 = 0.0;
+                }
+
+                float p_light7 = dot(normalize(fakenormal),normalize(v_surfaceToLight7))*8.0/length(v_surfaceToLight7);
+                if(p_light7 < 0.0)
+                {
+                    p_light7 = 0.0;
+                }
+
+                float p_light8 = dot(normalize(fakenormal),normalize(v_surfaceToLight8))*8.0/length(v_surfaceToLight8);
+                if(p_light8 < 0.0)
+                {
+                    p_light8 = 0.0;
+                }
+
+                float p_light9 = dot(normalize(fakenormal),normalize(v_surfaceToLight9))*8.0/length(v_surfaceToLight9);
+                if(p_light9 < 0.0)
+                {
+                    p_light9 = 0.0;
+                }
+
+                float p_light10 = dot(normalize(fakenormal),normalize(v_surfaceToLight10))*8.0/length(v_surfaceToLight10);
+                if(p_light10 < 0.0)
+                {
+                    p_light10 = 0.0;
+                }
+
+                float d_light = 0.25*(dot(normalize(fakenormal),normalize(vec3(20.0,5.0,20.0))));
+                if(d_light < 0.0)
+                {
+                    // Dont want negative light
+                    // Ground will not be lit when facing up
+                    d_light = 0.0;
+                }
+
+
+			    // LIGHTNING DONE HERE. In the case that we discard the color
+			    // Could set to tempColor. tempColor.xyz would replace the fragColor
+			   // gl_FragColor = vec4(tempColor.x,tempColor.y,tempColor.z,1); 
+
+                gl_FragColor = vec4(tempColor.xyz*(p_light+ p_light2 + p_light3 + p_light4 + p_light5 + p_light6 + p_light7 + p_light8 + p_light9 + p_light10 + ambient + d_light),1);
+
+            }
+
+        </script>
+
+        <script>
+            class WebGL_Interface
+            {
+                constructor()
+                {
+                    this.vertexShaderSource = document.getElementById("2dVertexShader").text;
+                    this.fragmentShaderSource = document.getElementById("2dFragmentShader").text;
+                    this.vertexShader = this.createShader(gl.VERTEX_SHADER, this.vertexShaderSource);
+                    this.fragmenShader = this.createShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+                    //Link to program
+                    this.program = this.createProgram(this.vertexShader,this.fragmenShader);
+                    //setup our viewport
+                    gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
+                    //set clear colors
+                    //gl.clearColor(1,1,1,1);
+                    gl.clear(gl.COLOR_BUFFER_BIT);	
+                    //gl.clear(gl.DEPTH_BUFFER_BIT);	
+                    //what progbram to use;
+                    
+                    //We will need this for now!
+                    gl.enable(gl.DEPTH_TEST);
+                    
+                    gl.useProgram(this.program);
+                    
+                    var camLoc  = gl.getUniformLocation(this.program,'worldLoc');
+                    gl.uniform3fv(camLoc,new Float32Array([0,0,0]));
+                    var worldLoc = gl.getUniformLocation(this.program,'worldRotation');
+                    gl.uniform3fv(worldLoc,new Float32Array([0,0,0]));
+                    
+                    var tempLoc = gl.getUniformLocation(this.program,'n');
+                    gl.uniform1f(tempLoc,.1); //.1
+                    tempLoc = gl.getUniformLocation(this.program,'f');
+                    gl.uniform1f(tempLoc,500);
+                    tempLoc = gl.getUniformLocation(this.program,'r');
+                    gl.uniform1f(tempLoc,.1);
+                    tempLoc = gl.getUniformLocation(this.program,'t');
+                    gl.uniform1f(tempLoc,.06);
+
+                    // Defining the aspect ratio
+                    var aspect = gl.getUniformLocation(this.program, 'aspect');
+                    var a = gl.canvas.width / gl.canvas.height;
+                    gl.uniform1f(aspect, a);
+                        
+                    // Defining the field of view
+                    var field = gl.getUniformLocation(this.program, 'fov');
+                    var fov = Math.tan(2.37); // ~120 degrees
+                    gl.uniform1f(field, fov);
+                    
+                }
+                
+                createShader(type,source)
+                {
+                    var shader = gl.createShader(type);
+                    gl.shaderSource(shader,source);
+                    gl.compileShader(shader);
+                    var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
+                    if(success)
+                    {
+                        return shader;
+                    }
+                    //Else it didn't work
+                    console.error(gl.getShaderInfoLog(shader));
+                    gl.deleteShader(shader);
+                }
+                
+                createProgram(vs,fs)
+                {
+                    var program = gl.createProgram();
+                    gl.attachShader(program,vs);
+                    gl.attachShader(program,fs);
+                    gl.linkProgram(program);
+                    var succsess = gl.getProgramParameter(program,gl.LINK_STATUS);
+                    if(succsess)
+                    {
+                        return program;
+                    }
+                    console.error(gl.getProgramInfoLog(program));
+                    gl.deleteProgram(program);	
+                }
+
+            }
+
+        </script>
+
+
+        <script>
+            class Transform
+            {
+                constructor()
+                {
+                    this.forward = [0,0,1];
+                    this.right = [1,0,0];
+                    this.up = [0,1,0];
+                }
+
+                doRotations(RotAngles)
+                {
+                    this.xRot = [
+                                [1,0,0,0],
+                                [0,Math.cos(RotAngles[0]),Math.sin(RotAngles[0]),0],
+                                [0,-1*Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
+                                [0,0,0,1]
+                            ];		
+                    this.yRot = [
+                            [Math.cos(RotAngles[1]),0,Math.sin(RotAngles[1]),0],
+                            [0,1,0,0],
+                            [-1*Math.sin(RotAngles[1]),0,Math.cos(RotAngles[1]),0],
+                            [0,0,0,1]	
+                            ];
+                    this.zRot = [
+                                [Math.cos(RotAngles[2]),Math.sin(RotAngles[2]),0,0],
+                                [-1*Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
+                                [0,0,1,0],
+                                [0,0,0,1]
+                            ]
+                    //this.forward = this.crossMultiply(xRot,[0,0,1,0]);		
+                    this.forward = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,0,1,0])))
+                    this.right = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[1,0,0,0])))
+                    this.up = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,1,0,0])))
+                }			
+                crossMultiply(M,V)
+                {
+                    //console.log(M[0][3]);
+                    //console.log(V[3]);
+                    var temp = [
+                                M[0][0]*V[0]+M[0][1]*V[1]+M[0][2] * V[2]+ M[0][3]*V[3],
+                                M[1][0]*V[0]+M[1][1]*V[1]+M[1][2] * V[2]+ M[1][3]*V[3],
+                                M[2][0]*V[0]+M[2][1]*V[1]+M[2][2] * V[2]+ M[2][3]*V[3],
+                                M[3][0]*V[0]+M[3][1]*V[1]+M[3][2] * V[2]+ M[3][3]*V[3]
+                                ]
+                    //console.log(temp);
+                    return temp;
+                }
+                
+            }
+
+
+            class GameObject
+            {
+                constructor(tCount, pType, minF, magF, ts) 
+                {
+                    this.loc = [0,0,0];
+                    this.rot = [0,0,0];
+                    this.isTrigger = false;
+                    this.cRadX = 1.0;
+                    this.cRadY = 1.0;
+                    this.cRadZ = 1.0;
+                    this.velocity = [0,0,0];
+                    this.angVelocity = [0,0,0];
+                    this.name = "default";
+                    this.id = 0;
+                    this.prefab;
+                    
+                    this.triangleCount = tCount;
+                    this.primitiveType = pType;
+
+                    // Setting the filter types for the render function
+                    this.minFilter = minF;
+                    this.magFilter = magF;
+                    this.tFilter = ts;
+                    this.sFilter = ts;
+
+                    this.isFaceCam = false;
+                    this.isPowerofTwo = true;
+                    this.transform = new Transform();
+                }
+                
+                Move()
+                {
+                    var tempP = [0,0,0];
+                    for(var i =0; i < 3;i ++)
+                    {
+                        tempP[i] = this.loc[i];
+                        tempP[i] += this.velocity[i];
+                        this.rot[i] += this.angVelocity[i];
+                    }
+                    // If any of the rotation values reach 360 degrees (6.28319~), reset back to 0 degrees
+                    if(!this.isTrigger)
+                    {
+                        var clear = true;
+                        for(var so in m.Solid)
+                        {
+                            if(m.Solid[so] != this)
+                            {
+                                if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].name, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+                                {
+                                    this.OnCollisionEnter(m.Solid[so])
+                                
+                                    try
+                                    {
+                                        m.Solid[so].OnCollisionEnter(this);
+                                    }
+                                    catch{}
+                                
+                                    clear = false;
+                                }
+                            }
+                        } 
+                        if(clear)
+                        {
+                            this.loc = tempP;
+                        }
+                    }
+                    else
+                    {  
+                        this.loc = tempP;
+                        
+                        
+                        // Check the trigger object against any solid objects
+                        for(var so in m.Solid)
+                        {
+                            // If we already collided with the solid object earlier and it has a OnTriggerEnter then
+                            // we can simply store it and use it here
+                            if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Solid[so].name, m.Solid[so].loc, m.Solid[so].cRadX, m.Solid[so].cRadY, m.Solid[so].cRadZ))
+                            {
+                                // If there is a detected collision then call the TriggerEnter function from the
+                                // object thats listening for collisions, in this case the trigger object
+                                this.OnTriggerEnter(m.Solid[so]);
+                                try
+                                {
+                                    m.Solid[so].OnTriggerEnter(this);
+                                }
+                                catch
+                                {}
+                            }
+                        
+                        }
+                        // Now check trigger with trigger just in case
+                        for(var to in m.Trigger)
+                        { 	//this should be correct. It is trying to check for trigger objects insted of solid objects
+                            if(this != m.Trigger[to]){
+                                if(m.CheckCollision(this.name,tempP, this.cRadX, this.cRadY, this.cRadZ, m.Trigger[to].name, m.Trigger[to].loc, m.Trigger[to].cRadX, m.Trigger[to].cRadY, m.Trigger[to].cRadZ))
+                                {
+                                    this.OnTriggerEnter(m.Trigger[to]);
+                                    try
+                                    {
+                                        m.Trigger[to].OnTriggerEnter(this);
+                                    }
+                                    catch
+                                    {}
+                                }
+                            }
+                        }
+                    }
+                }
+
+                OnCollisionEnter(other){}
+
+                OnTriggerEnter(other){}
+                
+
+                Render(program)
+                {
+                    var uTextureLocation = gl.getUniformLocation(program, 'sampler');
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    gl.uniform1i(uTextureLocation, 0);
+
+                    var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+                    var size = 3;          // 2 components per iteration
+                    var type = gl.FLOAT;   // the data is 32bit floats
+                    var normalize = false; // don't normalize the data
+                    var stride = 5*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element     // 0 = move forward size * sizeof(type) each iteration to get the next position
+                    var offset = 0;        // start at the beginning of the buffer
+                    gl.enableVertexAttribArray(positionAttributeLocation);
+                    gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+                    
+                    //Now we have to do this for color
+                    var TexAttributeLocation = gl.getAttribLocation(program,"a_texcoord");
+                    //We don't have to bind because we already have the correct buffer bound.
+                    size = 2;
+                    type = gl.FLOAT;
+                    normalize = false;
+                    stride = 5*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
+                    offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
+                    gl.enableVertexAttribArray(TexAttributeLocation);
+                    gl.vertexAttribPointer(TexAttributeLocation, size, type, normalize, stride, offset);
+
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    //setup S
+                    //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE
+                    //Sets up our T
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.minFilter);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, this.magFilter);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, this.sFilter);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, this.tFilter);	
+                    if(this.isPowerofTwo)			
+                        gl.generateMipmap(gl.TEXTURE_2D);
+                            
+                    var tranLoc  = gl.getUniformLocation(program,'transform');
+                    gl.uniform3fv(tranLoc,new Float32Array(this.loc));
+                    var thetaLoc = gl.getUniformLocation(program,'rotation');
+                    gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
+                
+                    //var ibuffer = gl.createBuffer();
+                    //gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ibuffer);
+                    //gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint8Array(this.indexOrder),gl.STATIC_DRAW);
+                    //gl.drawElements(gl.TRIANGLES,this.indexOrder.length,gl.UNSIGNED_BYTE,0);
+
+                    if(this.isFaceCam)
+                    {
+                        var FaceCamLoc = gl.getUniformLocation(program,'FaceCam');
+                        gl.uniform1i(FaceCamLoc,true);
+                    }
+
+
+                    gl.drawArrays(this.primitiveType, 0, this.triangleCount);
+
+                    if(this.isFaceCam)
+                    {
+                        gl.uniform1i(FaceCamLoc,false);
+                    }
+                }
+
+                Update()
+                {
+                    console.error(this.name +" update() is NOT IMPLEMENTED!");
+                }
+                
+            }
+
+
+            class Ground extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.LINEAR_MIPMAP_NEAREST,gl.NEAREST,gl.REPEAT);
+                    this.name = "Ground";
+                    this.buffer=gl.createBuffer();
+                    
+                    
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+                    this.vertices =
+                    [//  X     Y  Z     s t
+                        -1000,0,-1000,  0,0,
+                        1000,0, -1000,  1000,0,
+                        -1000,0,1000,   0,1000,
+                        1000, 0,1000,   1000,1000
+                    ];
+
+                    
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+
+                    //gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,16,16,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.picture));
+
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = `./Textures/cobble.png?cacheBust=${Date.now()}`;
+
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+                    this.loc=[0,0,0];
+                    this.rot=[0,0,0];
+                }
+                Update()
+                {
+                    //Do Nothing
+                }
+                
+            }
+
+            class Bullet extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Bullet";
+                    this.isTrigger = true;
+                    //this.isFaceCam = true;
+                    this.isPowerofTwo = false;
+                    this.isFromCamera = false;
+                    this.isFromEnemy = false;
+                    this.buffer = gl.createBuffer();
+                    this.dir = [0,0,0];
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+                    this.vertices = 
+                    [
+                        //  X     Y  Z     s t
+                        // Front face
+                        -1,	-1,	1, 1,   1,
+                        1,	-1, 1, 0,   1,
+                        -1,  1, 1, 1,   0,
+                        1,	 1,  1, 0,   0,
+                    ];
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+
+                    //gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,16,16,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.picture));
+
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/fireball.png"
+
+                    //"./cobble.png"
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+                }
+
+                Update()
+                {
+                    // Update each of the velocity values of the bullet
+                    // by muliplying the right vector by a scalar. The vector
+                    // helps give direction and scaling it helps in preserving that
+                    // direction
+                    for(let i = 0; i < 3; i++)
+                    { 
+                        if(this.isFromCamera)
+                            this.velocity[i] -= this.dir[i] * 0.02;	
+                        else
+                        this.velocity[i] += this.dir[i] * 0.02;
+                    }
+                    // Now update bullets movement and check for collisions
+                    this.Move();
+
+                }
+
+                OnTriggerEnter(other)
+                {
+                    if(other.name == "Wall")
+                    {
+                        //console.log("Wall collided with Bullet");
+                        m.DestroyObject(this.id);
+                    }
+
+                    if(other.name == "Camera")
+                    {
+                        
+                        //console.log("Camera collided with bullet");
+                        if(!this.isFromCamera)
+                        {
+                            other.loc = [0,0,-3];
+                            other.rot = [0,1.56,0];
+                        }
+                        
+                    }
+
+                    if(other.name == "Enemy1" || other.name == "Enemy2" || other.name == "Enemy3")
+                    {
+                        if(!this.isFromEnemy)
+                        {
+                            if(--other.hp == 0)
+                                m.DestroyObject(other.id);
+                            
+                            m.DestroyObject(this.id)
+
+                        }
+                        
+
+                    }
+
+                    
+                }
+            }
+
+
+            class Camera extends GameObject
+            {
+                constructor()
+                {
+                    super(0, gl.TRIANGLES);
+                    this.name = "Camera";
+                    this.loc = [0,0,0];
+                    this.rot = [0,0,0];
+                        
+                }
+                Update()
+                {
+                    // All of this is from the Player update
+                    this.velocity = [0,0,0];
+                    this.angVelocity = [0,0,0];
+                    if("A" in m.Keys && m.Keys["A"])
+                    {
+                        // 1 == rotate y
+                        // If we want to rotate the camera to move
+                        // right then i have to rotate the entire world to the
+                        // left. So in this case we make sure to rotate counter-clockwise
+                        this.angVelocity[1] -=.02;		//euler angles x,y,z
+                    }
+                    if("D" in m.Keys && m.Keys["D"])
+                    {
+                        // Movign the world 
+                        // Same idea of roation applies here! In this case to rotate the camera
+                        // left, we make suere to rotate the world to the right (clock-wise)
+                        this.angVelocity[1] +=.02;
+                    }
+                    
+                    // Make sure to rotate the direction vectors by the same ammount!
+                    this.transform.doRotations(this.rot);
+                    // Want to move in the z direction which is where the camera is pointing
+                    var tempF = this.transform.forward;
+                    if("W" in m.Keys && m.Keys["W"])	// Move forward 
+                    {
+                        for(var i =0; i < 3; i++)
+                        {
+                            this.velocity[i] += tempF[i]*.1; 
+                        }
+                    }
+                    if("S" in m.Keys && m.Keys["S"])	// Move backwards
+                    {
+                        for(var i =0; i < 3; i++)
+                        {
+                            this.velocity[i] -= tempF[i]*.1; 
+                        }
+                    }
+
+                    // Pressing the space bar will cause the player to shoot a bullet
+                    if(" " in m.Keys && m.Keys[" "])
+                    {
+                        console.log("Space works!");
+                        // Idea is to first check if a bullet already exists in the play area
+                        // if so then we dont shoot another bullet until the one that already exists
+                        // is destroyed first. var b helps us with this
+                        var b = false;
+                        for(var so in m.Trigger)
+                        {
+                            // Bullet object is considered to be trigger object
+                            if("Bullet" == m.Trigger[so].name)
+                            {
+                                b = true;
+                                break;
+                            }
+                        }
+                    
+                        if(!b)
+                        {
+                            // Once we can fire a bullet, we first create it, update the direction vectors
+                            // to the latest rotation, send that direction information over to dir and then
+                            // let the bullet travel in the direction that the player is pointing
+                            //this.transform.doRotations(this.rot);
+                            // Had to flip the y rotation for this one
+                            var bullet = m.CreateObject(2, Bullet, [this.loc[0], this.loc[1], (-1*(this.loc[2]))],[this.rot[0],-1*this.rot[1],this.rot[2]],0.2,0.2,0.2);
+                            var dir = this.transform.forward;
+                            bullet.dir[0] = -1*dir[0];
+                            bullet.dir[1] = -1*dir[1];
+                            bullet.dir[2] = dir[2];
+                            bullet.isFaceCam = false;
+                            bullet.isFromCamera = true;
+                        }
+                    }
+
+                    this.Move();
+                }
+                Render(program)
+                {
+                    var camLoc  = gl.getUniformLocation(program,'worldLoc');
+                    gl.uniform3fv(camLoc,new Float32Array(this.loc));
+                    var worldLoc = gl.getUniformLocation(program,'worldRotation');
+                    gl.uniform3fv(worldLoc,new Float32Array(this.rot));
+                }
+
+                OnCollisionEnter(other)
+                {
+
+                    if(other.name == "Wall")
+                        console.log("Wall collided with camera");
+
+                    if(other.name == "Boundary")
+                        console.log("You made it to the end!");
+                }
+
+                OnTriggerEnter(other)
+                {
+                    
+                }
+                
+                
+            }
+
+            class Enemy1 extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Enemy1";
+                    this.isTrigger = true;
+                    this.isFaceCam = true;
+                    
+                    this.isPowerofTwo = false;
+
+                    this.hits = 0;
+                    this.hp = 4;
+
+                    this.buffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+                    this.vertices =
+                    [
+                        //X 	Y 	Z   S   T
+                        -1,		-1,	0, 1,   1,
+                        1,		-1, 0, 0,   1,
+                        -1,      1, 0, 1,   0,
+                        1,		1,  0, 0,   0
+                    ];
+
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    
+                    
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/caco.png";
+
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+                    // For desginating the back and forth direction
+                    this.sign = 0;
+                    // enemy velocity
+                    this.velocity = [0,0,0.008];
+
+
+                    
+                }
+
+                Update()
+                {
+                    this.Move();
+                    
+                    //console.log(this.loc);
+                    //console.log(this.velocity);
+                }
+
+                OnTriggerEnter(other)
+                {
+                    if(other.name == "Wall")
+                    {
+                        //console.log("Enemy collision");
+                        // 0 == positive movement (right)
+                        if(this.sign == 0)
+                        {
+                            this.sign = 1;
+                        }
+                        else	// left movement (left)
+                        {
+                            this.sign = 0;
+                        }
+                        this.velocity = this.velocity.map(value => value * -1);
+                        
+                        
+                    }
+
+                    if(other.name == "Camera")
+                    {
+                        //console.log("Camera collided with enemy");
+                        other.loc = [0,0,-3];
+                        other.rot = [0,1.56,0];
+                        
+                    }
+                }
+
+            }
+
+            class Enemy2 extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Enemy2";
+                    this.isTrigger = true;
+                    this.isFaceCam = true;
+                    this.isPowerofTwo = false;
+
+                    this.hits = 0;
+                    this.hp = 3;
+
+                    this.buffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+                    this.vertices =
+                    [
+                        //X 	Y 	Z   S   T
+                        -1,		-1,	0, 1,   1,
+                        1,		-1, 0, 0,   1,
+                        -1,      1, 0, 1,   0,
+                        1,		1,  0, 0,   0
+                    ];
+
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    
+                    
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/blinky.png";
+
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+                    // For desginating the back and forth direction
+                    this.sign = 0;
+                    // enemy velocity
+                    this.velocity = [(Math.random() * 0.016) - 0.008,0,(Math.random() * 0.016) - 0.008];
+
+
+                    
+                }
+
+                Update()
+                {
+                    this.Move();
+                    
+                    //console.log(this.loc);
+                    //console.log(this.velocity);
+                }
+
+                OnTriggerEnter(other)
+                {
+                    if(other.name == "Wall")
+                    {
+                        console.log("Enemy collision");
+                        // 0 == positive movement (right)
+                        if(this.sign == 0)
+                        {
+                            this.sign = 1;
+                        }
+                        else	// left movement (left)
+                        {
+                            this.sign = 0;
+                        }
+                        
+                        // Generate random x and z components
+                        const randomX = (Math.random() * 0.016) - 0.008;
+                        const randomZ = (Math.random() * 0.016) - 0.008;
+                        
+                        // Calculate the magnitude (length) of the vector
+                        const magnitude = Math.sqrt(randomX * randomX + randomZ * randomZ);
+                        
+                        // Normalize the vector (divide each component by magnitude)
+                        const normalizedX = randomX / magnitude;
+                        const normalizedZ = randomZ / magnitude;
+                        
+                        // Set the desired speed
+                        const speed = 0.03; // Adjust this value to control enemy speed
+                        
+                        // Apply the speed to the normalized direction
+                        this.velocity = [normalizedX * speed, 0, normalizedZ * speed];
+                        
+                    }
+
+                    if(other.name == "Camera")
+                    {
+                        //console.log("Camera collided with enemy");
+                        other.loc = [0,0,-3];
+                        other.rot = [0,1.56,0];
+                        
+                    }
+                }
+
+
+            }
+
+
+            class Enemy3 extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Enemy2";
+                    this.isTrigger = true;
+                    this.isFaceCam = true;
+                    this.isPowerofTwo = false;
+
+                    this.hits = 0;
+                    this.hp = 2;
+
+                    this.count = 0;
+                    this.buffer = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+                    this.vertices =
+                    [
+                        //X 	Y 	Z   S   T
+                        -1,		-1,	0, 1,   1,
+                        1,		-1, 0, 0,   1,
+                        -1,      1, 0, 1,   0,
+                        1,		1,  0, 0,   0
+                    ];
+
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    
+                    
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/imp.png";
+
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+                    // For desginating the back and forth direction
+                    this.sign = 0;
+                    // enemy velocity
+                    this.velocity = [(Math.random() * 0.016) - 0.008,0,(Math.random() * 0.016) - 0.008];
+
+
+                    
+                }
+
+                Update()
+                {
+                    this.count++;
+
+                    if(this.count == 200)
+                    {
+
+                        var camX = m.Camera.loc[0];
+                        var camZ = m.Camera.loc[2];
+
+                        var enemyX = this.loc[0];
+                        var enemyZ = this.loc[2];
+
+                        var enemyCamVec = [camX-enemyX,0,camZ+enemyZ];
+                        var magnitude = Math.sqrt(enemyCamVec[0]*enemyCamVec[0] + enemyCamVec[2]*enemyCamVec[2]);
+
+                        var normalizedX = enemyCamVec[0] / magnitude;
+                        var normalizedZ = enemyCamVec[2] / magnitude;
+
+                        var bullet = m.CreateObject(2, Bullet, [this.loc[0], this.loc[1], this.loc[2]],[0,0,0],0.2,0.2,0.2);
+                        
+                        bullet.dir[0] = normalizedX;
+                        bullet.dir[1] = 0;
+                        bullet.dir[2] = -1*normalizedZ;
+                        bullet.isFaceCam = true;
+                        bullet.isFromEnemy = true;
+
+                        this.count = 0;
+                    }
+
+
+                    this.Move();
+                    //console.log(this.loc);
+                    //console.log(this.velocity);
+                }
+
+                OnTriggerEnter(other)
+                {
+                    if(other.name == "Wall")
+                    {
+                        console.log("Enemy collision");
+                        // 0 == positive movement (right)
+                        if(this.sign == 0)
+                        {
+                            this.sign = 1;
+                        }
+                        else	// left movement (left)
+                        {
+                            this.sign = 0;
+                        }
+                        
+                        // Generate random x and z components
+                        const randomX = (Math.random() * 0.016) - 0.008;
+                        const randomZ = (Math.random() * 0.016) - 0.008;
+                        
+                        // Calculate the magnitude (length) of the vector
+                        const magnitude = Math.sqrt(randomX * randomX + randomZ * randomZ);
+                        
+                        // Normalize the vector (divide each component by magnitude)
+                        const normalizedX = randomX / magnitude;
+                        const normalizedZ = randomZ / magnitude;
+                        
+                        // Set the desired speed
+                        const speed = 0.03; // Adjust this value to control enemy speed
+                        
+                        // Apply the speed to the normalized direction
+                        this.velocity = [normalizedX * speed, 0, normalizedZ * speed];
+                        
+                    }
+
+                    if(other.name == "Camera")
+                    {
+                        //console.log("Camera collided with enemy");
+                        other.loc = [0,0,-3];
+                        other.rot = [0,1.56,0];
+                        
+                    }
+                }
+
+            }
+
+            class Wall extends GameObject
+            {
+                constructor()
+                {
+                    super(16,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Wall";
+                    this.isPowerofTwo = false;
+                    this.loc = [0,0,0];
+                    this.rot = [0,0,0];
+
+                    this.buffer=gl.createBuffer();
+                    
+                    
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+                    this.vertices =
+                    [//  X     Y  Z     s t
+                        // Front face
+                        -1,	-1,	1, 1,   1,
+                        1,	-1, 1, 0,   1,
+                        -1,  1, 1, 1,   0,
+                        1,	 1,  1, 0,   0,
+
+                        -1, -1, -1,   0, 0,  // v0 (bottom back)
+                        -1, -1,  1,   1, 0,  // v1 (bottom front)
+                        -1,  1, -1,   0, 1,  // v2 (top back)
+                        -1,  1,  1,   1, 1,  // v3 (top front)
+
+                        // Right face (x = 1)
+                        1, -1,  1,   0, 0,  // v0 (bottom front)
+                        1, -1, -1,   1, 0,  // v1 (bottom back)
+                        1,  1,  1,   0, 1,  // v2 (top front)
+                        1,  1, -1,   1, 1,   // v3 (top back)
+
+                        // Back face (z = -1)
+                        1, -1, -1,   0, 0,  // v0 (bottom right)
+                        -1, -1, -1,   1, 0,  // v1 (bottom left)
+                        1,  1, -1,   0, 1,  // v2 (top right)
+                        -1,  1, -1,   1, 1   // v3 (top left)
+            
+
+                    ];
+
+                    
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+
+                    //gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,16,16,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.picture));
+
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/brick.png"
+
+                    this.image2 = new Image();
+                    this.image2.src = "./Textures/cobbleWall.png";
+
+
+                    // Choosing a random image from a pool of two images
+                    var imageSelection = Math.floor(Math.random() * 2) + 1;
+                    //"./cobble.png"
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    if(imageSelection == 2)
+                    {
+                        this.image.addEventListener('load', () => {
+                            gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+                                gl.UNSIGNED_BYTE, this.image);
+                                //gl.generateMipmap(gl.TEXTURE_2D);
+                            });
+
+                    }
+                    else
+                    {
+                        this.image.addEventListener('load', () => {
+                            gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+                                gl.UNSIGNED_BYTE, this.image2);
+                                //gl.generateMipmap(gl.TEXTURE_2D);
+                            });
+
+                    }
+                    
+                
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+                }
+
+                Update()
+                {
+                    // Nothing
+                }
+
+            }
+
+            class Boundary extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Boundary";
+                    
+                    this.loc = [0,0,0];
+                    this.rot = [0,0,0];
+                }
+
+                Update()
+                {
+                    
+                }
+
+                Render(program)
+                {
+                    // Nothing
+
+                }
+            }
+
+            class Torch extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Torch";
+                    this.isFaceCam = true;
+                    this.isPowerofTwo = false;
+                    this.buffer=gl.createBuffer();
+                    //this.colorBuffer = gl.createBuffer();
+                    
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+                    this.vertices = 
+                    [
+                        //X 	Y 	Z   S   T
+                        -1,		-1,	0, 1,   1,
+                        1,		-1, 0, 0,   1,
+                        -1,      1, 0, 1,   0,
+                        1,		1,  0, 0,   0
+                    ];
+
+
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    
+                    
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/torch.png";
+
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                    
+                    
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+                }
+                
+                Update()
+                {
+                    //Nothing
+                }
+            }
+
+            class Quad extends GameObject
+            {
+                constructor()
+                {
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    this.name = "Quad";
+                    this.isFaceCam = true;
+                    this.isPowerofTwo = false;
+                    this.buffer=gl.createBuffer();
+                    this.count = 0;
+
+                    
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+                    //Get vertices from announcements
+                    this.vertices =
+                    [
+                        //X 	Y 	Z   S   T
+                        -1,		-1,	0, 1,   1,
+                        1,		-1, 0, 0,   1,
+                        -1,      1, 0, 1,   0,
+                        1,		1,  0, 0,   0
+                    ];
+                    
+                    this.MyTexture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                    
+                    
+                    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+                    this.image = new Image();
+                    this.image.src = "./Textures/blinky.png";
+
+                    // We have to wait until the image fully loads before we can work with it
+                    // If we dont do this we run the chance of running into errors.
+                    this.image.addEventListener('load', () => {
+                        gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+                            //gl.generateMipmap(gl.TEXTURE_2D);
+                        });
+                    
+                    /*
+                    this.image2 = new Image();
+                    this.image2.src = "./Textures/pistol2.png";
+
+                    this.image3 = new Image();
+                    this.image3.src = "./Textures/pistol3.png";
+
+                    this.image4 = new Image();
+                    this.image4.src = "./Textures/pistol4.png";
+                    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    */
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+                    this.loc=[0,0,0];
+                    this.rot=[0,0,0];
+                }
+
+                Update()
+                {
+                    /*
+                    this.count++;
+
+                    if(this.count == 15)
+                    {
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image2);
+                    }
+                    if(this.count == 30)
+                    {
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image3);
+
+
+                    }
+                    if(this.count == 45)
+                    {
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image4);
+
+                        
+                    }
+                    if(this.count == 60)
+                    {
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                            gl.UNSIGNED_BYTE, this.image);
+
+                        this.count = 0;
+                    }
+                        */
+                    //this.Move();
+                }
+            }
+
+        </script>
+
+        <script>
+            const maze = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 6, 3, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 6, 4, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 6, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 7, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 4, 0, 0, 1, 3, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 1, 0, 6, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 6, 0, 0, 0, 1, 6, 0, 1, 0, 0, 0, 0, 5, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                ];
+
+
+                
+        </script>
+
+        <script>
+            class main
+            {
+                constructor()
+			    {
+                    this.Visual = [];
+                    this.Solid = [];
+                    this.Trigger = [];
+                    this.ObjectCounter = 0;	
+                    this.Camera;		
+
+                    this.myWEBGL = new WebGL_Interface();
+                    gl.clearColor(0,0,0,1);
+
+                    this.myTriangle = [];
+                    this.Keys = [];
+
+                   
+                    this.Camera = this.CreateObject(1,Camera,[0,0,-3],[0,1.56,0],0.3,0.3,0.3);
+                    this.CreateObject(2,Ground,[0,-1,0],[0,0,0],0,0,0);
+                   // this.CreateObject(2,Quad,[2,0,0],[0,0,0],0,0,0);
+                   
+
+                    var torchCount = 0;
+                    for(var i = 0; i < 24; i++)
+                    {
+                        for(var j = 0; j < 22; j++)
+                         {
+                            if(maze[i][j] == 1)
+                            {
+                                // The walls are 2x2x2 cubes so this means that we need to
+                                // multiply their array locations by 2 as well as offset them
+                                this.CreateObject(1,Wall,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+
+                                // In the case that you wanted to make the wall higher. Just
+                                // stack another cube
+                                //this.CreateObject(1,Wall,[(i*2)-2,2,(j*2)-11],[0,0,0],1,1,1);
+
+                            }
+                            if(maze[i][j] == 2)
+                            {
+                                this.CreateObject(2,Quad,[(i*2)-1,0,(j*2)-17],[0,0,0],0,0,0);
+                            }
+                            if(maze[i][j] == 3)
+                            {
+                                this.CreateObject(2,Enemy1,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+                            }
+                            if(maze[i][j] == 4)
+                            {
+                                this.CreateObject(2,Enemy2,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+
+                            }
+                            if(maze[i][j] == 5)
+                            {
+                                this.CreateObject(2,Enemy3,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+
+                            }
+                            if(maze[i][j] == 6)
+                            {
+                                var torch = this.CreateObject(2,Torch,[(i*2)-2,0,(j*2)-18],[0,0,0],0.1,1.6,0.1);
+					            var torchLoc = gl.getUniformLocation(this.myWEBGL.program,'torchLoc'+(torchCount+1));
+					            gl.uniform3fv(torchLoc, torch.loc);
+                                torchCount++;
+                            }
+                            if(maze[i][j] == 7)
+                            {
+                                this.CreateObject(1,Boundary,[(i*2)-1,0,(j*2)-17],0,0,0,2,2,4)
+                            }
+
+                         }
+
+                    }
+
+                    
+                    
+                    // Setting up a random location for the point lights
+                    
+                
+                }
+                
+                UpdateAll()
+                {
+                    for(var i in this.Visual)
+                    {
+                        this.Visual[i].Update();
+                    }
+                    for(var i in this.Solid)
+                    {
+                        this.Solid[i].Update();
+                    }
+                    for(var i in this.Trigger)
+                    {
+                        this.Trigger[i].Update();
+                    }
+                
+                }
+                
+                RenderAll()
+                {
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    //gl.clearColor(1,1,1,1);
+                    for(var i in this.Visual)
+                    {
+                        this.Visual[i].Render(this.myWEBGL.program);
+                    }
+                    for(var i in this.Solid)
+                    {
+                        this.Solid[i].Render(this.myWEBGL.program);
+                    }
+                    for(var i in this.Trigger)
+                    {
+                        this.Trigger[i].Render(this.myWEBGL.program);
+                    }
+                
+                }
+                
+                CheckCollision(name1,loc1,rad1X,rad1Y,rad1Z,name2,loc2,rad2X,rad2Y,rad2Z)
+                {
+                    // X, Y and Z radiuses for each object
+                    var totalRange = rad1X + rad2X;
+                    var totalRangeY = rad1Y + rad2Y;
+                    var totalRangeZ = rad1Z + rad2Z;
+                    // Return true if they collide, false if they don't.
+                    
+                    // Need to flip the z of the camera because internally, its moving in the positive z direction when
+                    // W is pressed. This will cause issues because its initially looking in the negative z direction
+                    if(name1 == "Camera")
+                    {
+                        
+                        if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(-1*loc1[2]-loc2[2]) < totalRangeZ)
+                            return true;
+
+                        return false;
+                    }
+                    else if(name2 == "Camera")
+                    {
+                        if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]-(-1*loc2[2])) < totalRangeZ)
+                            return true;
+
+                        return false;
+
+                    }
+                    else
+                    {
+                        // Its important to add both locations when checking the z axis. If gem is at -5, doing loc1[2] - loc2[2] will only
+                        // cause the distance to grow as we approach the gem which is the opposite of what we want. Instead we subtract and then 
+                        // take the absolute value. This should also probably apply to x and y in 3d space loc1[2]-loc2[2]
+                        if(Math.abs(loc1[0]-loc2[0]) < totalRange && Math.abs(loc1[1]-loc2[1]) < totalRangeY && Math.abs(loc1[2]-loc2[2]) < totalRangeZ)
+                            return true;
+
+                        return false;
+
+                    }
+                    
+                }
+                
+                CreateObject(type, prefab, loc, rot, rX, rY, rZ)
+                {
+                    //type 0 = visual
+                    //type 1 = solid
+                    //type 2 = trigger
+                    var temp = new prefab; //Yes this dark sorcery will work.
+                    var id = "ID"+this.ObjectCounter;
+                    this.ObjectCounter ++;
+                    temp.id = id;
+                    temp.prefab = prefab;
+                    temp.loc = loc;
+                    temp.rot = rot;
+                    temp.cRadX = rX;
+                    temp.cRadY = rY;
+                    temp.cRadZ = rZ;
+                        switch(type)
+                        {
+                            case 0:
+                                this.Visual[id] = temp;
+                            break;
+                            case 1:
+                                this.Solid[id] = temp;
+                            break;
+                            case 2:
+                                this.Trigger[id] = temp;
+                            break;
+                            default:
+                            break;
+                        }		
+                    //We can return the game object to the calling function
+                    //Should the user want to set custom names or properties on it.
+                    return temp;
+                }
+                
+                
+                DestroyObject(id)
+                {
+                    if(id in this.Visual)
+                    {
+                        delete this.Visual[id];
+                    }
+                    if(id in this.Solid)
+                    {
+                        delete this.Solid[id];
+                    }
+
+                    if(id in this.Trigger)
+                    {
+                        delete this.Trigger[id];
+                    }
+                }
+                
+                KeyDown(event)
+                {
+                    this.Keys[String.fromCharCode(event.keyCode)] = true;
+                    //console.log(String.fromCharCode(event.keyCode) +" should be true - "+this.Keys[String.fromCharCode(event.keyCode)]);
+                }
+                
+                KeyUp(event)
+                {
+                    this.Keys[String.fromCharCode(event.keyCode)] = false;
+                    //console.log(String.fromCharCode(event.keyCode) +" should be false - "+this.Keys[String.fromCharCode(event.keyCode)]);
+                }
+                
+                MouseClick(event)
+                {
+                    var rect = canvas.getBoundingClientRect();
+                    var realX = event.clientX - rect.left;
+                    var realY = event.clientY - rect.top;
+                    console.log(realX+","+realY);
+                    var x = -1 + 2*realX/myCanvas.width;
+                    var y = -1 + 2*(myCanvas.height - realY)/myCanvas.height;
+                    console.log("The click occurred on "+x+","+y);
+                }
+
+                
+                //Static call backs go down here
+                //   |
+                //  \ /
+                //   v
+                static keyD(event)
+                {
+                    m.KeyDown(event);
+                }
+                static keyU(event)
+                {
+                    m.KeyUp(event);
+                }
+
+                static mouseH(event)
+                {
+                    m.MouseClick(event);
+                }
+                
+                static MainLoop()
+                {
+                    m.UpdateAll();
+                    m.RenderAll();
+                    requestAnimationFrame(main.MainLoop);
+                }
+
+            }
+        </script>
+
+
+    </head>
+    <body>
+        <h1 style="color:blueviolet">Escape the Maze!</h1>
+
+        <canvas id="myCanvas" width="1470" height="780" style = "border: 1px solid #000;">
+			Your browser does not support canvas.
+		</canvas>
+		
+		<script>
+			var canvas = document.getElementById("myCanvas");
+			var gl = canvas.getContext("webgl");
+			var m = new main();
+			window.onkeydown = main.keyD;
+			window.onkeyup = main.keyU;
+			canvas.addEventListener("click",main.mouseH);
+			
+
+			requestAnimationFrame(main.MainLoop);	
+        </script>
+    </body>
+</html>
