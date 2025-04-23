@@ -22,13 +22,19 @@
 
             uniform bool FaceCam;
 
-        /*
-            // Torch positions
             uniform vec3 torchLoc1;
             uniform vec3 torchLoc2;
             uniform vec3 torchLoc3;
             uniform vec3 torchLoc4;
             uniform vec3 torchLoc5;
+            uniform vec3 torchLoc6;
+            uniform vec3 torchLoc7;
+            uniform vec3 torchLoc8;
+            uniform vec3 torchLoc9;
+            uniform vec3 torchLoc10;
+        /*
+            // Torch positions
+            
 
             // Spotlight positions
             uniform vec3 spotLoc1;
@@ -48,6 +54,17 @@
             uniform float fov;
 
             
+            varying vec3 fakenormal;
+            varying vec3 v_surfaceToLight;	// L vector
+            varying vec3 v_surfaceToLight2;
+            varying vec3 v_surfaceToLight3;
+            varying vec3 v_surfaceToLight4;
+            varying vec3 v_surfaceToLight5;
+            varying vec3 v_surfaceToLight6;	
+            varying vec3 v_surfaceToLight7;
+            varying vec3 v_surfaceToLight8;
+            varying vec3 v_surfaceToLight9;
+            varying vec3 v_surfaceToLight10;
         /*
             //Lighting. The idea is to implement a simple version of the phong model
             // Make array to index each light, or create variable for each light
@@ -55,11 +72,9 @@
             // Remember that vectors dont have translation values and are instead used 
             // to specify direction in this case. You can implicitly think of these
             // vectors being along side their respective vertex but it makes not difference
-            varying vec3 fakenormal;
             varying vec3 v_surfaceToView;	// V vector
             
             // Point lights
-            varying vec3 v_surfaceToLight;	// L vector
             varying vec3 v_surfaceToLight2;
             varying vec3 v_surfaceToLight3;
             varying vec3 v_surfaceToLight4;
@@ -162,7 +177,7 @@
             void main()
             {
             
-            /*
+            
                 // Idea with fake normals is to have them spawn from the
                 // center of the object and have them shoot out from there
                 // these are not real normals. Ideally, each vertex should have its
@@ -186,7 +201,7 @@
                     // Ground planes normal will be up always
                     fakenormal = vec3(0.0,1.0,0.0);
                 }
-            */
+            
 
                 vec4 worldSpace = vec4(0.0,0.0,0.0,1.0);
                 
@@ -206,6 +221,16 @@
 			    }
                 
 
+                v_surfaceToLight = torchLoc1 - worldSpace.xyz;
+                v_surfaceToLight2 = torchLoc2 - worldSpace.xyz;
+                v_surfaceToLight3 = torchLoc3 - worldSpace.xyz;
+                v_surfaceToLight4 = torchLoc4 - worldSpace.xyz;
+                v_surfaceToLight5 = torchLoc5 - worldSpace.xyz;
+                v_surfaceToLight6 = torchLoc6 - worldSpace.xyz;
+                v_surfaceToLight7 = torchLoc7 - worldSpace.xyz;
+                v_surfaceToLight8 = torchLoc8 - worldSpace.xyz;
+                v_surfaceToLight9 = torchLoc9 - worldSpace.xyz;
+                v_surfaceToLight10 = torchLoc10 - worldSpace.xyz;
             /*
                 // Lighting stuff
                 // The position of the point light. Moved it back in the -z direction
@@ -213,7 +238,6 @@
                 // rising the position of the surface in the y will cause the floor to be
                 // less lit. Remember: point - point = vector
                 // vec3(0,0,-4)
-                v_surfaceToLight = torchLoc1 - worldSpace.xyz;
                 v_surfaceToLight2 = torchLoc2 - worldSpace.xyz;
                 v_surfaceToLight3 = torchLoc3 - worldSpace.xyz;
                 v_surfaceToLight4 = torchLoc4 - worldSpace.xyz;
@@ -258,12 +282,21 @@
             varying vec2 v_texcoord;
             uniform sampler2D sampler;
 
+            varying vec3 fakenormal;
+            varying vec3 v_surfaceToLight;
+            varying vec3 v_surfaceToLight2;
+            varying vec3 v_surfaceToLight3;
+            varying vec3 v_surfaceToLight4;
+            varying vec3 v_surfaceToLight5;
+            varying vec3 v_surfaceToLight6;
+            varying vec3 v_surfaceToLight7;
+            varying vec3 v_surfaceToLight8;
+            varying vec3 v_surfaceToLight9;
+            varying vec3 v_surfaceToLight10;
         /*
             // As long as their are facing in the correct direction, we should be good on lighting
-            varying vec3 fakenormal;
             varying vec3 v_surfaceToView;
             
-            varying vec3 v_surfaceToLight;
             varying vec3 v_surfaceToLight2;
             varying vec3 v_surfaceToLight3;
             varying vec3 v_surfaceToLight4;
@@ -417,7 +450,96 @@
                 //gl_FragColor = vec4(fragColor*(spot_light_power),1);
                 //gl_FragColor = vec4(fragColor*(p_light + p_light2 + p_light3 + p_light4 + p_light5 + d_light + ambient + spot_light_power + spot_light_power2 + spot_light_power3 + spot_light_power4 + spot_light_power5),1);
 
-                gl_FragColor = texture2D(sampler,v_texcoord);
+                //gl_FragColor = texture2D(sampler,v_texcoord);
+
+                vec4 tempColor = texture2D(sampler,v_texcoord);
+			    // Applying transparency filter
+			    if(tempColor.w<1.0)
+			    {
+			    	// Render or not
+			    	discard;
+			    }
+
+                // LIGHTNING
+                float ambient = 0.1;
+
+                // POINT LIGHT
+                // Latter expression specifies the distance fall off so that objects that are far away from the
+                // point light will be less lit. This value is optional
+                float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*8.0/length(v_surfaceToLight);
+                if(p_light < 0.0)
+                {
+                    p_light = 0.0;
+                }
+
+                float p_light2 = dot(normalize(fakenormal),normalize(v_surfaceToLight2))*8.0/length(v_surfaceToLight2);
+                if(p_light2 < 0.0)
+                {
+                    p_light2 = 0.0;
+                }
+
+                float p_light3 = dot(normalize(fakenormal),normalize(v_surfaceToLight3))*8.0/length(v_surfaceToLight3);
+                if(p_light3 < 0.0)
+                {
+                    p_light3 = 0.0;
+                }
+
+                float p_light4 = dot(normalize(fakenormal),normalize(v_surfaceToLight4))*8.0/length(v_surfaceToLight4);
+                if(p_light4 < 0.0)
+                {
+                    p_light4 = 0.0;
+                }
+
+                float p_light5 = dot(normalize(fakenormal),normalize(v_surfaceToLight5))*8.0/length(v_surfaceToLight5);
+                if(p_light5 < 0.0)
+                {
+                    p_light5 = 0.0;
+                }
+
+                float p_light6 = dot(normalize(fakenormal),normalize(v_surfaceToLight6))*8.0/length(v_surfaceToLight6);
+                if(p_light6 < 0.0)
+                {
+                    p_light6 = 0.0;
+                }
+
+                float p_light7 = dot(normalize(fakenormal),normalize(v_surfaceToLight7))*8.0/length(v_surfaceToLight7);
+                if(p_light7 < 0.0)
+                {
+                    p_light7 = 0.0;
+                }
+
+                float p_light8 = dot(normalize(fakenormal),normalize(v_surfaceToLight8))*8.0/length(v_surfaceToLight8);
+                if(p_light8 < 0.0)
+                {
+                    p_light8 = 0.0;
+                }
+
+                float p_light9 = dot(normalize(fakenormal),normalize(v_surfaceToLight9))*8.0/length(v_surfaceToLight9);
+                if(p_light9 < 0.0)
+                {
+                    p_light9 = 0.0;
+                }
+
+                float p_light10 = dot(normalize(fakenormal),normalize(v_surfaceToLight10))*8.0/length(v_surfaceToLight10);
+                if(p_light10 < 0.0)
+                {
+                    p_light10 = 0.0;
+                }
+
+                float d_light = 0.25*(dot(normalize(fakenormal),normalize(vec3(20.0,5.0,20.0))));
+                if(d_light < 0.0)
+                {
+                    // Dont want negative light
+                    // Ground will not be lit when facing up
+                    d_light = 0.0;
+                }
+
+
+			    // LIGHTNING DONE HERE. In the case that we discard the color
+			    // Could set to tempColor. tempColor.xyz would replace the fragColor
+			   // gl_FragColor = vec4(tempColor.x,tempColor.y,tempColor.z,1); 
+
+                gl_FragColor = vec4(tempColor.xyz*(p_light+ p_light2 + p_light3 + p_light4 + p_light5 + p_light6 + p_light7 + p_light8 + p_light9 + p_light10 + ambient + d_light),1);
 
             }
 
@@ -427,28 +549,38 @@
         <script src="BasicGameObject.js"></script>
 
         <script>
-            function CreateCheckered()
-			{
-				//Actually get our texture;
-				var myPic = [];
-				for(i =0; i < 16; i ++)
-				{
-					for(j =0; j< 16; j ++)
-					{
-						if(i%2 == j%2)
-						{
-							//Push red
-							myPic.push(255,30,30,255);
-						}
-						else
-						{
-							myPic.push(30,255,30,255);
-						}	
-					}
-				}
-				return myPic;
-			}
+            const maze = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 6, 3, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 6, 4, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 6, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 7, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 4, 0, 0, 1, 3, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 1, 0, 6, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 6, 0, 0, 0, 1, 6, 0, 1, 0, 0, 0, 0, 5, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                ];
 
+
+                
+        </script>
+
+        <script>
             class main
             {
                 constructor()
@@ -456,20 +588,70 @@
                     this.Visual = [];
                     this.Solid = [];
                     this.Trigger = [];
-                    this.ObjectCounter = 0;			
+                    this.ObjectCounter = 0;	
+                    this.Camera;		
 
                     this.myWEBGL = new WebGL_Interface();
-                    gl.clearColor(0.5,0.5,1,1);
+                    gl.clearColor(0,0,0,1);
 
                     this.myTriangle = [];
                     this.Keys = [];
 
                    
-
-
-                    this.CreateObject(1,Camera,[0,0,0],[0,0,0],0.3,0.3,0.3);
+                    this.Camera = this.CreateObject(1,Camera,[0,0,-3],[0,1.56,0],0.3,0.3,0.3);
                     this.CreateObject(2,Ground,[0,-1,0],[0,0,0],0,0,0);
+                   // this.CreateObject(2,Quad,[2,0,0],[0,0,0],0,0,0);
+                   
 
+                    var torchCount = 0;
+                    for(var i = 0; i < 24; i++)
+                    {
+                        for(var j = 0; j < 22; j++)
+                         {
+                            if(maze[i][j] == 1)
+                            {
+                                // The walls are 2x2x2 cubes so this means that we need to
+                                // multiply their array locations by 2 as well as offset them
+                                this.CreateObject(1,Wall,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+
+                                // In the case that you wanted to make the wall higher. Just
+                                // stack another cube
+                                //this.CreateObject(1,Wall,[(i*2)-2,2,(j*2)-11],[0,0,0],1,1,1);
+
+                            }
+                            if(maze[i][j] == 2)
+                            {
+                                this.CreateObject(2,Quad,[(i*2)-1,0,(j*2)-17],[0,0,0],0,0,0);
+                            }
+                            if(maze[i][j] == 3)
+                            {
+                                this.CreateObject(2,Enemy1,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+                            }
+                            if(maze[i][j] == 4)
+                            {
+                                this.CreateObject(2,Enemy2,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+
+                            }
+                            if(maze[i][j] == 5)
+                            {
+                                this.CreateObject(2,Enemy3,[(i*2)-2,0,(j*2)-18],[0,0,0],1,1,1);
+
+                            }
+                            if(maze[i][j] == 6)
+                            {
+                                var torch = this.CreateObject(2,Torch,[(i*2)-2,0,(j*2)-18],[0,0,0],0.1,1.6,0.1);
+					            var torchLoc = gl.getUniformLocation(this.myWEBGL.program,'torchLoc'+(torchCount+1));
+					            gl.uniform3fv(torchLoc, torch.loc);
+                                torchCount++;
+                            }
+                            if(maze[i][j] == 7)
+                            {
+                                this.CreateObject(1,Boundary,[(i*2)-1,0,(j*2)-17],0,0,0,2,2,4)
+                            }
+
+                         }
+
+                    }
 
                     
                     

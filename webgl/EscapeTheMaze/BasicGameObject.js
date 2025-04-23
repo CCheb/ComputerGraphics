@@ -51,7 +51,7 @@ class Transform
 
 class GameObject
 {
-	constructor(tCount, pType) 
+	constructor(tCount, pType, minF, magF, ts) 
 	{
 		this.loc = [0,0,0];
 		this.rot = [0,0,0];
@@ -67,6 +67,15 @@ class GameObject
 		
 		this.triangleCount = tCount;
 		this.primitiveType = pType;
+
+		// Setting the filter types for the render function
+		this.minFilter = minF;
+		this.magFilter = magF;
+		this.tFilter = ts;
+		this.sFilter = ts;
+
+		this.isFaceCam = false;
+		this.isPowerofTwo = true;
 		this.transform = new Transform();
 	}
 	
@@ -109,6 +118,8 @@ class GameObject
 		else
 		{  
 			this.loc = tempP;
+			
+			
 			// Check the trigger object against any solid objects
 			for(var so in m.Solid)
 			{
@@ -184,11 +195,12 @@ class GameObject
 		//setup S
 		 //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE
 		//Sets up our T
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);				
-		gl.generateMipmap(gl.TEXTURE_2D);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.minFilter);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, this.magFilter);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, this.sFilter);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, this.tFilter);	
+		if(this.isPowerofTwo)			
+			gl.generateMipmap(gl.TEXTURE_2D);
 				
 		var tranLoc  = gl.getUniformLocation(program,'transform');
 		gl.uniform3fv(tranLoc,new Float32Array(this.loc));
@@ -199,7 +211,20 @@ class GameObject
 	 	//gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ibuffer);
 	 	//gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint8Array(this.indexOrder),gl.STATIC_DRAW);
 	 	//gl.drawElements(gl.TRIANGLES,this.indexOrder.length,gl.UNSIGNED_BYTE,0);
+
+		if(this.isFaceCam)
+		{
+			var FaceCamLoc = gl.getUniformLocation(program,'FaceCam');
+			gl.uniform1i(FaceCamLoc,true);
+		}
+
+
 	 	gl.drawArrays(this.primitiveType, 0, this.triangleCount);
+
+		if(this.isFaceCam)
+		{
+			gl.uniform1i(FaceCamLoc,false);
+		}
 	}
 
 	Update()
@@ -214,11 +239,10 @@ class Ground extends GameObject
 {
 	constructor()
 	{
-		super(4, gl.TRIANGLE_STRIP);
+		super(4,gl.TRIANGLE_STRIP,gl.LINEAR_MIPMAP_NEAREST,gl.NEAREST,gl.REPEAT);
 		this.name = "Ground";
 		this.buffer=gl.createBuffer();
 		
-		this.picture = CreateCheckered();
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		this.vertices =
@@ -239,7 +263,7 @@ class Ground extends GameObject
 		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
 
 		this.image = new Image();
-		this.image.src = "./stone.png";
+		this.image.src = `./Textures/cobble.png?cacheBust=${Date.now()}`;
 
 		// We have to wait until the image fully loads before we can work with it
 		// If we dont do this we run the chance of running into errors.
@@ -261,6 +285,111 @@ class Ground extends GameObject
 	
 }
 
+class Bullet extends GameObject
+{
+	constructor()
+	{
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Bullet";
+		this.isTrigger = true;
+		//this.isFaceCam = true;
+		this.isPowerofTwo = false;
+		this.isFromCamera = false;
+		this.isFromEnemy = false;
+		this.buffer = gl.createBuffer();
+		this.dir = [0,0,0];
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		this.vertices = 
+		[
+			//  X     Y  Z     s t
+			// Front face
+			-1,	-1,	1, 1,   1,
+			1,	-1, 1, 0,   1,
+			-1,  1, 1, 1,   0,
+			1,	 1,  1, 0,   0,
+		];
+
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+
+		//gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,16,16,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.picture));
+
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/fireball.png"
+
+		//"./cobble.png"
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+	}
+
+	Update()
+	{
+		// Update each of the velocity values of the bullet
+		// by muliplying the right vector by a scalar. The vector
+		// helps give direction and scaling it helps in preserving that
+		// direction
+		for(let i = 0; i < 3; i++)
+		{ 
+			if(this.isFromCamera)
+				this.velocity[i] -= this.dir[i] * 0.02;	
+			else
+			this.velocity[i] += this.dir[i] * 0.02;
+		}
+		// Now update bullets movement and check for collisions
+		this.Move();
+
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Wall")
+		{
+			//console.log("Wall collided with Bullet");
+			m.DestroyObject(this.id);
+		}
+
+		if(other.name == "Camera")
+		{
+			
+			//console.log("Camera collided with bullet");
+			if(!this.isFromCamera)
+			{
+				other.loc = [0,0,-3];
+				other.rot = [0,1.56,0];
+			}
+			
+		}
+
+		if(other.name == "Enemy1" || other.name == "Enemy2" || other.name == "Enemy3")
+		{
+			if(!this.isFromEnemy)
+			{
+				if(--other.hp == 0)
+					m.DestroyObject(other.id);
+				
+				m.DestroyObject(this.id)
+
+			}
+			
+
+		}
+
+		
+	}
+}
+
 
 class Camera extends GameObject
 {
@@ -270,15 +399,6 @@ class Camera extends GameObject
 		this.name = "Camera";
 		this.loc = [0,0,0];
 		this.rot = [0,0,0];
-
-
-
-		
-
-		
-
-		
-
 			
 	}
 	Update()
@@ -321,17 +441,45 @@ class Camera extends GameObject
 			}
 		}
 
+		// Pressing the space bar will cause the player to shoot a bullet
+		if(" " in m.Keys && m.Keys[" "])
+		{
+			console.log("Space works!");
+			// Idea is to first check if a bullet already exists in the play area
+			// if so then we dont shoot another bullet until the one that already exists
+			// is destroyed first. var b helps us with this
+			var b = false;
+			for(var so in m.Trigger)
+			{
+				// Bullet object is considered to be trigger object
+				if("Bullet" == m.Trigger[so].name)
+				{
+					b = true;
+					break;
+				}
+			}
+		
+			if(!b)
+			{
+				// Once we can fire a bullet, we first create it, update the direction vectors
+				// to the latest rotation, send that direction information over to dir and then
+				// let the bullet travel in the direction that the player is pointing
+				//this.transform.doRotations(this.rot);
+				// Had to flip the y rotation for this one
+				var bullet = m.CreateObject(2, Bullet, [this.loc[0], this.loc[1], (-1*(this.loc[2]))],[this.rot[0],-1*this.rot[1],this.rot[2]],0.2,0.2,0.2);
+				var dir = this.transform.forward;
+				bullet.dir[0] = -1*dir[0];
+				bullet.dir[1] = -1*dir[1];
+				bullet.dir[2] = dir[2];
+				bullet.isFaceCam = false;
+				bullet.isFromCamera = true;
+			}
+		}
+
 		this.Move();
 	}
 	Render(program)
 	{
-
-
-
-
-
-
-
 		var camLoc  = gl.getUniformLocation(program,'worldLoc');
 		gl.uniform3fv(camLoc,new Float32Array(this.loc));
 		var worldLoc = gl.getUniformLocation(program,'worldRotation');
@@ -340,30 +488,450 @@ class Camera extends GameObject
 
 	OnCollisionEnter(other)
 	{
-		if(other.name == "Hex")
-			console.log("Hex collided with camera");
+
+		if(other.name == "Wall")
+			console.log("Wall collided with camera");
 
 		if(other.name == "Boundary")
-			console.log("Boundary collided with camera");
+			console.log("You made it to the end!");
 	}
 
 	OnTriggerEnter(other)
 	{
-		if(other.name == "Hitbox")
-			console.log("Hitbox collided with Camera");
+		
 	}
 	
 	
 }
 
-class Boundary extends GameObject
+class Enemy1 extends GameObject
 {
 	constructor()
 	{
-		super(0,gl.TRIANGLES);
-		this.name = "Boundary";
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Enemy1";
+		this.isTrigger = true;
+		this.isFaceCam = true;
+		
+		this.isPowerofTwo = false;
+
+		this.hits = 0;
+		this.hp = 4;
+
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices =
+		[
+			//X 	Y 	Z   S   T
+			-1,		-1,	0, 1,   1,
+			1,		-1, 0, 0,   1,
+			-1,      1, 0, 1,   0,
+			1,		1,  0, 0,   0
+		];
+
+
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+		
+		
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/caco.png";
+
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+		// For desginating the back and forth direction
+		this.sign = 0;
+		// enemy velocity
+		this.velocity = [0,0,0.008];
+
+
+		
+	}
+
+	Update()
+	{
+		this.Move();
+		
+		//console.log(this.loc);
+		//console.log(this.velocity);
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Wall")
+		{
+			//console.log("Enemy collision");
+			// 0 == positive movement (right)
+			if(this.sign == 0)
+			{
+				this.sign = 1;
+			}
+			else	// left movement (left)
+			{
+				this.sign = 0;
+			}
+			this.velocity = this.velocity.map(value => value * -1);
+			
+			
+		}
+
+		if(other.name == "Camera")
+		{
+			//console.log("Camera collided with enemy");
+			other.loc = [0,0,-3];
+			other.rot = [0,1.56,0];
+			
+		}
+	}
+
+}
+
+class Enemy2 extends GameObject
+{
+	constructor()
+	{
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Enemy2";
+		this.isTrigger = true;
+		this.isFaceCam = true;
+		this.isPowerofTwo = false;
+
+		this.hits = 0;
+		this.hp = 3;
+
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices =
+		[
+			//X 	Y 	Z   S   T
+			-1,		-1,	0, 1,   1,
+			1,		-1, 0, 0,   1,
+			-1,      1, 0, 1,   0,
+			1,		1,  0, 0,   0
+		];
+
+
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+		
+		
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/blinky.png";
+
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+		// For desginating the back and forth direction
+		this.sign = 0;
+		// enemy velocity
+		this.velocity = [(Math.random() * 0.016) - 0.008,0,(Math.random() * 0.016) - 0.008];
+
+
+		
+	}
+
+	Update()
+	{
+		this.Move();
+		
+		//console.log(this.loc);
+		//console.log(this.velocity);
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Wall")
+		{
+			console.log("Enemy collision");
+			// 0 == positive movement (right)
+			if(this.sign == 0)
+			{
+				this.sign = 1;
+			}
+			else	// left movement (left)
+			{
+				this.sign = 0;
+			}
+			
+			// Generate random x and z components
+			const randomX = (Math.random() * 0.016) - 0.008;
+			const randomZ = (Math.random() * 0.016) - 0.008;
+			
+			// Calculate the magnitude (length) of the vector
+			const magnitude = Math.sqrt(randomX * randomX + randomZ * randomZ);
+			
+			// Normalize the vector (divide each component by magnitude)
+			const normalizedX = randomX / magnitude;
+			const normalizedZ = randomZ / magnitude;
+			
+			// Set the desired speed
+			const speed = 0.03; // Adjust this value to control enemy speed
+			
+			// Apply the speed to the normalized direction
+			this.velocity = [normalizedX * speed, 0, normalizedZ * speed];
+			
+		}
+
+		if(other.name == "Camera")
+		{
+			//console.log("Camera collided with enemy");
+			other.loc = [0,0,-3];
+			other.rot = [0,1.56,0];
+			
+		}
+	}
+
+
+}
+
+
+class Enemy3 extends GameObject
+{
+	constructor()
+	{
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Enemy2";
+		this.isTrigger = true;
+		this.isFaceCam = true;
+		this.isPowerofTwo = false;
+
+		this.hits = 0;
+		this.hp = 2;
+
+		this.count = 0;
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices =
+		[
+			//X 	Y 	Z   S   T
+			-1,		-1,	0, 1,   1,
+			1,		-1, 0, 0,   1,
+			-1,      1, 0, 1,   0,
+			1,		1,  0, 0,   0
+		];
+
+
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+		
+		
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/imp.png";
+
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+		// For desginating the back and forth direction
+		this.sign = 0;
+		// enemy velocity
+		this.velocity = [(Math.random() * 0.016) - 0.008,0,(Math.random() * 0.016) - 0.008];
+
+
+		
+	}
+
+	Update()
+	{
+		this.count++;
+
+		if(this.count == 200)
+		{
+
+			var camX = m.Camera.loc[0];
+			var camZ = m.Camera.loc[2];
+
+			var enemyX = this.loc[0];
+			var enemyZ = this.loc[2];
+
+			var enemyCamVec = [camX-enemyX,0,camZ+enemyZ];
+			var magnitude = Math.sqrt(enemyCamVec[0]*enemyCamVec[0] + enemyCamVec[2]*enemyCamVec[2]);
+
+			var normalizedX = enemyCamVec[0] / magnitude;
+			var normalizedZ = enemyCamVec[2] / magnitude;
+
+			var bullet = m.CreateObject(2, Bullet, [this.loc[0], this.loc[1], this.loc[2]],[0,0,0],0.2,0.2,0.2);
+			
+			bullet.dir[0] = normalizedX;
+			bullet.dir[1] = 0;
+			bullet.dir[2] = -1*normalizedZ;
+			bullet.isFaceCam = true;
+			bullet.isFromEnemy = true;
+
+			this.count = 0;
+		}
+
+
+		this.Move();
+		//console.log(this.loc);
+		//console.log(this.velocity);
+	}
+
+	OnTriggerEnter(other)
+	{
+		if(other.name == "Wall")
+		{
+			console.log("Enemy collision");
+			// 0 == positive movement (right)
+			if(this.sign == 0)
+			{
+				this.sign = 1;
+			}
+			else	// left movement (left)
+			{
+				this.sign = 0;
+			}
+			
+			// Generate random x and z components
+			const randomX = (Math.random() * 0.016) - 0.008;
+			const randomZ = (Math.random() * 0.016) - 0.008;
+			
+			// Calculate the magnitude (length) of the vector
+			const magnitude = Math.sqrt(randomX * randomX + randomZ * randomZ);
+			
+			// Normalize the vector (divide each component by magnitude)
+			const normalizedX = randomX / magnitude;
+			const normalizedZ = randomZ / magnitude;
+			
+			// Set the desired speed
+			const speed = 0.03; // Adjust this value to control enemy speed
+			
+			// Apply the speed to the normalized direction
+			this.velocity = [normalizedX * speed, 0, normalizedZ * speed];
+			
+		}
+
+		if(other.name == "Camera")
+		{
+			//console.log("Camera collided with enemy");
+			other.loc = [0,0,-3];
+			other.rot = [0,1.56,0];
+			
+		}
+	}
+
+}
+
+class Wall extends GameObject
+{
+	constructor()
+	{
+		super(16,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Wall";
+		this.isPowerofTwo = false;
 		this.loc = [0,0,0];
 		this.rot = [0,0,0];
+
+		this.buffer=gl.createBuffer();
+		
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		this.vertices =
+		[//  X     Y  Z     s t
+			// Front face
+			-1,	-1,	1, 1,   1,
+			1,	-1, 1, 0,   1,
+			-1,  1, 1, 1,   0,
+			1,	 1,  1, 0,   0,
+
+			-1, -1, -1,   0, 0,  // v0 (bottom back)
+			-1, -1,  1,   1, 0,  // v1 (bottom front)
+			-1,  1, -1,   0, 1,  // v2 (top back)
+			-1,  1,  1,   1, 1,  // v3 (top front)
+
+			// Right face (x = 1)
+			1, -1,  1,   0, 0,  // v0 (bottom front)
+			1, -1, -1,   1, 0,  // v1 (bottom back)
+			1,  1,  1,   0, 1,  // v2 (top front)
+			1,  1, -1,   1, 1,   // v3 (top back)
+
+			// Back face (z = -1)
+ 			1, -1, -1,   0, 0,  // v0 (bottom right)
+ 			-1, -1, -1,   1, 0,  // v1 (bottom left)
+ 			 1,  1, -1,   0, 1,  // v2 (top right)
+ 			-1,  1, -1,   1, 1   // v3 (top left)
+ 
+
+		];
+
+		
+
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+
+		//gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,16,16,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.picture));
+
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/brick.png"
+
+		this.image2 = new Image();
+		this.image2.src = "./Textures/cobbleWall.png";
+
+
+		// Choosing a random image from a pool of two images
+		var imageSelection = Math.floor(Math.random() * 2) + 1;
+		//"./cobble.png"
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		if(imageSelection == 2)
+		{
+			this.image.addEventListener('load', () => {
+				gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+					gl.UNSIGNED_BYTE, this.image);
+					//gl.generateMipmap(gl.TEXTURE_2D);
+				});
+
+		}
+		else
+		{
+			this.image.addEventListener('load', () => {
+				gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,gl.RGBA,
+					gl.UNSIGNED_BYTE, this.image2);
+					//gl.generateMipmap(gl.TEXTURE_2D);
+				});
+
+		}
+		
+	
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
 	}
 
 	Update()
@@ -371,10 +939,174 @@ class Boundary extends GameObject
 		// Nothing
 	}
 
+}
+
+class Boundary extends GameObject
+{
+	constructor()
+	{
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Boundary";
+		
+		this.loc = [0,0,0];
+		this.rot = [0,0,0];
+	}
+
+	Update()
+	{
+		
+	}
+
 	Render(program)
 	{
 		// Nothing
 
+	}
+}
+
+class Torch extends GameObject
+{
+	constructor()
+	{
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Torch";
+		this.isFaceCam = true;
+		this.isPowerofTwo = false;
+		this.buffer=gl.createBuffer();
+		//this.colorBuffer = gl.createBuffer();
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		this.vertices = 
+		[
+			//X 	Y 	Z   S   T
+			-1,		-1,	0, 1,   1,
+			1,		-1, 0, 0,   1,
+			-1,      1, 0, 1,   0,
+			1,		1,  0, 0,   0
+		];
+
+
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+		
+		
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/torch.png";
+
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+		
+		
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+
+	}
+	
+	Update()
+	{
+		//Nothing
+	}
+}
+
+class Quad extends GameObject
+{
+	constructor()
+	{
+		super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+		this.name = "Quad";
+		this.isFaceCam = true;
+		this.isPowerofTwo = false;
+		this.buffer=gl.createBuffer();
+		this.count = 0;
+
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+		//Get vertices from announcements
+		this.vertices =
+		[
+			//X 	Y 	Z   S   T
+			-1,		-1,	0, 1,   1,
+			1,		-1, 0, 0,   1,
+			-1,      1, 0, 1,   0,
+			1,		1,  0, 0,   0
+		];
+		
+		this.MyTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+		
+		
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		this.image = new Image();
+		this.image.src = "./Textures/blinky.png";
+
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+		
+		/*
+		this.image2 = new Image();
+		this.image2.src = "./Textures/pistol2.png";
+
+		this.image3 = new Image();
+		this.image3.src = "./Textures/pistol3.png";
+
+		this.image4 = new Image();
+		this.image4.src = "./Textures/pistol4.png";
+		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		*/
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+		this.loc=[0,0,0];
+		this.rot=[0,0,0];
+	}
+
+	Update()
+	{
+		/*
+		this.count++;
+
+		if(this.count == 15)
+		{
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image2);
+		}
+		if(this.count == 30)
+		{
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image3);
+
+
+		}
+		if(this.count == 45)
+		{
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image4);
+
+			
+		}
+		if(this.count == 60)
+		{
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+
+			this.count = 0;
+		}
+			*/
+		//this.Move();
 	}
 }
 
