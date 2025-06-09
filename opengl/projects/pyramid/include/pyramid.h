@@ -8,9 +8,19 @@ struct GLFWwindow;
 class Pyramid
 {
     public:
-        Pyramid();
+        Pyramid(float x, float y, float z);
         ~Pyramid();
     
+         // Deleted copy constructor and assignment (no copying)
+         // VBOs and VAOs cannot be shallow copied. Each pyramid
+         // object is entitled with their own VBO and VAO
+        Pyramid(const Pyramid&) = delete;
+        Pyramid& operator=(const Pyramid&) = delete;
+
+        // Move constructor and assignment
+        Pyramid(Pyramid&& other) noexcept;
+        Pyramid& operator=(Pyramid&& other) noexcept;
+
         // Update the rotation of the pyramid
         void update(unsigned int program, GLFWwindow *window);
         // render the pyramid
@@ -21,4 +31,5 @@ class Pyramid
         // the current rotations of the pyramid;
         unsigned int VBO, VAO;
         float rot[3];
+        float loc[3];
 };

@@ -7,13 +7,16 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-Pyramid::Pyramid()
+Pyramid::Pyramid(float x, float y, float z)
 {
     // initiallize the rot values to 0;
     rot[0] = 0.0;
     rot[1] = 0.0;
     rot[2] = 0.0;
 
+    loc[0] = x;
+    loc[1] = y;
+    loc[2] = z;
     // Make sure to list the vertices in CCW order since openGL considers
     // CCW to be front facing and CW back facing
     float vertices[]
@@ -62,9 +65,46 @@ Pyramid::Pyramid()
 Pyramid::~Pyramid()
 {
     // Do proper clean up at the end of the program
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    if (VAO) glDeleteVertexArrays(1, &VAO);
+    if (VBO) glDeleteBuffers(1, &VBO);
 }
+
+// Move constructor
+Pyramid::Pyramid(Pyramid&& other) noexcept {
+    for (int i = 0; i < 3; ++i) {
+        loc[i] = other.loc[i];
+        rot[i] = other.rot[i];
+    }
+
+    VAO = other.VAO;
+    VBO = other.VBO;
+
+    other.VAO = 0;
+    other.VBO = 0;
+}
+
+// Move assignment operator
+Pyramid& Pyramid::operator=(Pyramid&& other) noexcept {
+    if (this != &other) {
+        if (VAO) glDeleteVertexArrays(1, &VAO);
+        if (VBO) glDeleteBuffers(1, &VBO);
+
+        for (int i = 0; i < 3; ++i) {
+            loc[i] = other.loc[i];
+            rot[i] = other.rot[i];
+        }
+
+        VAO = other.VAO;
+        VBO = other.VBO;
+
+        other.VAO = 0;
+        other.VBO = 0;
+    }
+    return *this;
+}
+
+
+
 
 void Pyramid::update(unsigned int program, GLFWwindow *window)
 {
@@ -84,7 +124,7 @@ void Pyramid::update(unsigned int program, GLFWwindow *window)
     glm::mat4 transform = glm::mat4(1.0f);
 
     // Could optionaly move the pyramid through a transform
-    //transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+    transform = glm::translate(transform, glm::vec3(loc[0], loc[1], loc[2]));
     transform = glm::rotate(transform, rot[0], glm::vec3(1.0f, 0.0f, 0.0f));
     transform = glm::rotate(transform, rot[1], glm::vec3(0.0f, 1.0f, 0.0f));
 

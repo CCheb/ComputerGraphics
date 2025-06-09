@@ -12,7 +12,8 @@
 // for resizing the window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 // for processing input
-void processInput(GLFWwindow *window, unsigned int program, Pyramid& myPyramid);
+void processInput(GLFWwindow *window, unsigned int program, std::vector<Pyramid>& pyramids);
+void renderAll(std::vector<Pyramid>& pyramids);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -64,7 +65,14 @@ int main()
     Shader ourShader("../src/pyramid.vs", "../src/pyramid.fs");
 
     // create one pyramid object that we will render
-    Pyramid myPyramid;
+    Pyramid myPyramid(0.5f,0.0f,0.0f);
+    
+
+    // anonymous objects are considered rvalues which are essentially
+    // temporary values that dont have an address. 
+    std::vector<Pyramid> pyramids;
+    pyramids.emplace_back(0.5f, 0.0f, 0.0f);
+    pyramids.emplace_back(-0.5f, 0.0f, 0.0f);
 
     // use the program so that we can set uniforms
     // same as glUseProgram(ID); 
@@ -77,11 +85,15 @@ int main()
         // erase previous frame contents
         glClear(GL_COLOR_BUFFER_BIT);
         
-        // same as updateAll()
-        processInput(window, ourShader.ID, myPyramid);
+        ourShader.use(); // use program once per frame
 
-        // could do a renderAll if we are doing multiple objects
-        myPyramid.render();
+        // Loop through all pyramids and update + render each
+        for (auto& pyramid : pyramids) {
+            pyramid.update(ourShader.ID, window);  // set correct transform
+            pyramid.render();                      // draw using that transform
+        }
+
+        
 
         // double buffering
         glfwSwapBuffers(window);
@@ -96,13 +108,21 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window, unsigned int program,Pyramid& myPyramid)
+void processInput(GLFWwindow *window, unsigned int program, std::vector<Pyramid>& pyramids)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    myPyramid.update(program, window);
+   // myPyramid.update(program, window);
+    for(int i = 0; i < pyramids.size(); i++)
+        pyramids[i].update(program, window);
     
+}
+
+void renderAll(std::vector<Pyramid>& pyramids)
+{
+    for(int i = 0; i < pyramids.size(); i++)
+        pyramids[i].render();
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
