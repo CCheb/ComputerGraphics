@@ -134,7 +134,7 @@ void Pyramid::update(unsigned int program, GLFWwindow *window)
 
 }
 
-void Pyramid::render()
+void Pyramid::render() const
 {
     // bind the VAO as current and render
     glBindVertexArray(VAO);

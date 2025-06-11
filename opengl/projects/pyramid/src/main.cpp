@@ -8,6 +8,10 @@
 #include <iostream>
 #include <string>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 
 // for resizing the window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -78,21 +82,50 @@ int main()
     // same as glUseProgram(ID); 
     ourShader.use();
 
+    // we set both the view and perspective matricies here since we are not going
+    // to change them unlike the model matrix
+
+    // view referers to camera space and are the objects in terms of the camera
+    // if I want to move the camera then i have to move the world to achieve the same effect
+    // we do that movement here in the view matrix
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0,0.0,-3.0f));
+    ourShader.setMat4("view", view);
+
+    // With the perspective matrix we first must convert incomming coordinates into NDC coordinates
+    // (-1.0 - 1.0 in all axes). This helps us specify coordinates outside of NDC in local coordinates
+    // After that we set either orthographic of perspective viewing via the perspective divide.
+    // This is done last since OpenGL expects coordinates in NDC spaces right after the vertex shader which
+    // defines what will get rendered or not.
+    glm::mat4 perspective = glm::mat4(1.0f);
+    // fov, aspect ratio, near distance, far distance. This creates the well known frustrum
+    perspective = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    ourShader.setMat4("perspective", perspective);
+
+    // At the end we send these matricies to the mat4 uniforms
+
     while (!glfwWindowShouldClose(window))
     {
+       
         // set background and refresh color buffer
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         // erase previous frame contents
         glClear(GL_COLOR_BUFFER_BIT);
+
         
-        ourShader.use(); // use program once per frame
+        //ourShader.use(); // use program once per frame
 
         // Loop through all pyramids and update + render each
+        /*
         for (auto& pyramid : pyramids) {
             pyramid.update(ourShader.ID, window);  // set correct transform
             pyramid.render();                      // draw using that transform
         }
+        */
 
+        
+        processInput(window, ourShader.ID, pyramids);
+       // renderAll(pyramids);
         
 
         // double buffering
@@ -113,16 +146,25 @@ void processInput(GLFWwindow *window, unsigned int program, std::vector<Pyramid>
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-   // myPyramid.update(program, window);
-    for(int i = 0; i < pyramids.size(); i++)
-        pyramids[i].update(program, window);
+    // myPyramid.update(program, window);
+    // Loop through all pyramids and update + render each
+    for (auto& pyramid : pyramids) 
+    {
+        // Each triangle must update and render before the next one comes in
+        // this is because the transform matrix is going to be changed
+        pyramid.update(program, window);  // set correct transform
+        pyramid.render();
+    }
+    
+
     
 }
 
 void renderAll(std::vector<Pyramid>& pyramids)
 {
-    for(int i = 0; i < pyramids.size(); i++)
-        pyramids[i].render();
+    for (auto& pyramid : pyramids)
+        pyramid.render();
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

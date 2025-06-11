@@ -24,7 +24,7 @@ class Pyramid
         // Update the rotation of the pyramid
         void update(unsigned int program, GLFWwindow *window);
         // render the pyramid
-        void render();
+        void render() const;
     
     private:
         // objects VBO and VAO along with a rot array that stores
