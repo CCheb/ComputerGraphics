@@ -61,6 +61,8 @@ int main()
         return -1;
     }
     // enable backface culling do this after setting up context
+    // you can either enable depth testing or cullface 
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
@@ -90,6 +92,7 @@ int main()
     // we do that movement here in the view matrix
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0,0.0,-3.0f));
+   // view = glm::rotate(view, -0.5f, glm::vec3(1.0f,1.0f,0.0f));
     ourShader.setMat4("view", view);
 
     // With the perspective matrix we first must convert incomming coordinates into NDC coordinates
@@ -109,8 +112,8 @@ int main()
        
         // set background and refresh color buffer
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        // erase previous frame contents
-        glClear(GL_COLOR_BUFFER_BIT);
+        // erase previous frame contents both the color and the depth information
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         
         //ourShader.use(); // use program once per frame
@@ -155,8 +158,6 @@ void processInput(GLFWwindow *window, unsigned int program, std::vector<Pyramid>
         pyramid.update(program, window);  // set correct transform
         pyramid.render();
     }
-    
-
     
 }
 

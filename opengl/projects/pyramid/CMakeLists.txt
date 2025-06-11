@@ -18,8 +18,6 @@ target_include_directories(pyramid PUBLIC ${CMAKE_SOURCE_DIR}/include)
 # Link required libraries to shared library
 target_link_libraries(pyramid PUBLIC OpenGL::GL glfw)
 
-# Copy local shaders to the same directory as the binary
-#${CMAKE_CURRENT_SOURCE_DIR}
 
 
 
