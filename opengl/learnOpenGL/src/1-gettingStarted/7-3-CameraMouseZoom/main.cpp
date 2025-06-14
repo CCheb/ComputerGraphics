@@ -10,34 +10,39 @@
 
 #include <iostream>
 
+// callbacks allow for glfw to call these functions every frame
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);  // track mouse position
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);   // track zoom
+void processInput(GLFWwindow *window);  // handle input such as keyboard input
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);    
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);   // direction vector
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);    // needed for the lookat matrix
 
+// when we start the program, we want to have the mouse to be captured at the middle of the
+// screen by default
 bool firstMouse = true;
+
+// yaw = x axis and we need to rotate it since it will point down the x axis by default
 float yaw   = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-float pitch =  0.0f;
-float lastX =  800.0f / 2.0;
+float pitch =  0.0f;    // y axis
+float lastX =  800.0f / 2.0;    // position of the mouse defaulted to the middle of the screen
 float lastY =  600.0 / 2.0;
 float fov   =  45.0f;
 
-// timing
+// timing. Need deltaTime for frame/system independence
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
 int main()
 {
-    // glfw: initialize and configure
+    // glfw: initialize and configure context
     // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -50,19 +55,21 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Camera Mouse", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
+
+    // After configuring glfw, we set our callbacks
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // tell GLFW to capture our mouse
+    // tell GLFW to capture our mouse. Mouse will disapear in this case
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
@@ -81,7 +88,7 @@ int main()
     // ------------------------------------
     Shader ourShader("./camera.vs", "./camera.fs");
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // set up vertex data (and buffer(s)) and configure vertex attributes (same box from before)
     // ------------------------------------------------------------------
     float vertices[] = {
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -143,6 +150,7 @@ int main()
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
+    // Again, hitting the recording button on the recorder
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -212,7 +220,7 @@ int main()
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     // -------------------------------------------------------------------------------------------
     ourShader.use();
-    ourShader.setInt("texture1", 0);
+    ourShader.setInt("texture1", 0);    // linking samplers with appropriate texture units
     ourShader.setInt("texture2", 1);
 
 
@@ -220,7 +228,7 @@ int main()
     // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // per-frame time logic
+        // per-frame time logic (this should be done first)
         // --------------------
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
@@ -245,10 +253,12 @@ int main()
         ourShader.use();
 
         // pass projection matrix to shader (note that in this case it could change every frame)
+        // zooming in or out is based on the fov which is why we need to change the perspective matrix every frame
         glm::mat4 projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         ourShader.setMat4("projection", projection);
 
-        // camera/view transformation
+        // camera/view transformation. cameraPos + cameraFront is what generates the point right infront of the camera
+        // the camera will always look straight ahead no matter the movement (keyboard)
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         ourShader.setMat4("view", view);
 
@@ -270,6 +280,9 @@ int main()
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        // notice how we dont call mouse_callback due to it being a callback and is thus called automatically
+        // same thing goes for the scroll_callback and frame_buffer_callback.
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
@@ -290,12 +303,24 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // idea is that by changing the camera position we also change the target point
+    // right in front of it which by using the look at matrix is what the camera will focus on
     float cameraSpeed = static_cast<float>(2.5 * deltaTime);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += cameraSpeed * cameraFront;
+    {
+        // if we wanted to make it so that the camera can look around but only walk within
+        // the x,z plane, this is how we do it! We simply change the x and z movement values
+        // and leave the y constant. This way the camera doesnt follow the target when moving
+        // forwards or backwards.
+        cameraPos.x += cameraSpeed * cameraFront.x;
+        cameraPos.z += cameraSpeed * cameraFront.z;
+    }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= cameraSpeed * cameraFront;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        cameraPos.x -= cameraSpeed * cameraFront.x;
+        cameraPos.z -= cameraSpeed * cameraFront.z;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)   // genera right vector which will change cameras x position only
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
@@ -310,13 +335,16 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-// glfw: whenever the mouse moves, this callback is called
+// glfw: whenever the mouse moves, this callback is called. It internally knows the mouse position
+// its a callback since its an OS level thing to capture the mouse.
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
+    // if this is the first time capturing the mouse then we need to set it to its default position
+    // which is on the middle of the screen
     if (firstMouse)
     {
         lastX = xpos;
@@ -324,9 +352,10 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
         firstMouse = false;
     }
 
+    // Get the mouse offset. By how much the mouse moved in the next frame
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-    lastX = xpos;
+    lastX = xpos;   // lastX and Y are global variables
     lastY = ypos;
 
     float sensitivity = 0.1f; // change this value to your liking
