@@ -26,7 +26,8 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);   // direction vector
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);    // needed for the lookat matrix
 
 // when we start the program, we want to have the mouse to be captured at the middle of the
-// screen by default
+// screen by default. We make all of these values global since a callback is not called by us
+// but by glfw instead. This way the callback function can have access to it.
 bool firstMouse = true;
 
 // yaw = x axis and we need to rotate it since it will point down the x axis by default
