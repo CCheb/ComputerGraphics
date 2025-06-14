@@ -8,7 +8,7 @@ struct GLFWwindow;
 class Pyramid
 {
     public:
-        Pyramid(float x, float y, float z);
+        Pyramid(float locX, float locY, float locZ, float rotSpeed);
         ~Pyramid();
     
          // Deleted copy constructor and assignment (no copying)
@@ -28,7 +28,7 @@ class Pyramid
         Pyramid& operator=(Pyramid&& other) noexcept;
 
         // Update the rotation of the pyramid
-        void update(unsigned int program, GLFWwindow *window);
+        void update(unsigned int program, GLFWwindow *window, float deltaTime);
         // render the pyramid
         void render() const;
     
@@ -38,4 +38,5 @@ class Pyramid
         unsigned int VBO, VAO;
         float rot[3];
         float loc[3];
+        float rotSpeed;
 };

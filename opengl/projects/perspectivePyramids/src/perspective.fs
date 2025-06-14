@@ -5,6 +5,6 @@ in vec3 vColor;
 
 void main()
 {
-	// linearly interpolate between both textures (80% container, 20% awesomeface)
+	// setting the color for the vertex
 	FragColor = vec4(vColor, 1.0);
 }

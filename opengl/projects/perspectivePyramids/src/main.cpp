@@ -3,25 +3,38 @@
 // relies on those functions to work
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
 #include <shader/shader_m.h>
-#include "pyramid.h"
-#include <iostream>
-#include <string>
+#include <pyramid.h>
+#include <camera.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <iostream>
 
-// for resizing the window
+
+// callbacks handled by glfw
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-// for processing input
-void processInput(GLFWwindow *window, unsigned int program, std::vector<Pyramid>& pyramids);
-void renderAll(std::vector<Pyramid>& pyramids);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow *window);
 
-// settings
+// window settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
+// camera based off of camera.h
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
 
 int main()
 {
@@ -38,7 +51,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Pyramid", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Perspective Pyramids", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -48,10 +61,13 @@ int main()
     glfwMakeContextCurrent(window);
     // setting the resizing call back to the function we defined above
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     // enable v-sync
     glfwSwapInterval(1);
-  
-   
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -68,69 +84,54 @@ int main()
     glFrontFace(GL_CCW);
 
     // create shader program with Shader class
-    Shader ourShader("../src/pyramid.vs", "../src/pyramid.fs");
-
-    // create one pyramid object that we will render
-    Pyramid myPyramid(0.5f,0.0f,0.0f);
+    Shader ourShader("../src/perspective.vs", "../src/perspective.fs");
     
-
+    // create wall of pyramids
     // anonymous objects are considered rvalues which are essentially
     // temporary values that dont have an address. 
     std::vector<Pyramid> pyramids;
-    pyramids.emplace_back(0.5f, 0.0f, 0.0f);
-    pyramids.emplace_back(-0.5f, 0.0f, 0.0f);
+    for(int i = 0; i < 10; i++)
+        for(int j = 0; j < 10; j++)
+            pyramids.emplace_back(i-4.0f,j-4.0f,-15.0f, 0.7f);
 
     // use the program so that we can set uniforms
     // same as glUseProgram(ID); 
     ourShader.use();
 
-    // we set both the view and perspective matricies here since we are not going
-    // to change them unlike the model matrix
-
-    // view referers to camera space and are the objects in terms of the camera
-    // if I want to move the camera then i have to move the world to achieve the same effect
-    // we do that movement here in the view matrix
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0,0.0,-3.0f));
-   // view = glm::rotate(view, -0.5f, glm::vec3(1.0f,1.0f,0.0f));
-    ourShader.setMat4("view", view);
-
-    // With the perspective matrix we first must convert incomming coordinates into NDC coordinates
-    // (-1.0 - 1.0 in all axes). This helps us specify coordinates outside of NDC in local coordinates
-    // After that we set either orthographic of perspective viewing via the perspective divide.
-    // This is done last since OpenGL expects coordinates in NDC spaces right after the vertex shader which
-    // defines what will get rendered or not.
-    glm::mat4 perspective = glm::mat4(1.0f);
-    // fov, aspect ratio, near distance, far distance. This creates the well known frustrum
-    perspective = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    ourShader.setMat4("perspective", perspective);
-
     // At the end we send these matricies to the mat4 uniforms
 
     while (!glfwWindowShouldClose(window))
     {
-       
+        // per-frame time logic
+        // --------------------
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        // input
+        // --------------------
+        processInput(window);
+
         // set background and refresh color buffer
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         // erase previous frame contents both the color and the depth information
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        
-        //ourShader.use(); // use program once per frame
+        // pass projection matrix to shader (note that in this case it could change every frame)
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        ourShader.setMat4("perspective", projection); 
 
-        // Loop through all pyramids and update + render each
-        /*
-        for (auto& pyramid : pyramids) {
-            pyramid.update(ourShader.ID, window);  // set correct transform
-            pyramid.render();                      // draw using that transform
+        // camera/view transformation. Obtains the lookAt matrix with updated vectors
+        glm::mat4 view = camera.GetViewMatrix();
+        ourShader.setMat4("view", view);
+
+        // render wall of pyramids
+        for(auto& pyramid : pyramids)
+        {
+            pyramid.update(ourShader.ID, window, deltaTime);
+            pyramid.render();
         }
-        */
-
         
-        processInput(window, ourShader.ID, pyramids);
-       // renderAll(pyramids);
-        
-
         // double buffering
         glfwSwapBuffers(window);
         // handle inputs 
@@ -144,29 +145,20 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window, unsigned int program, std::vector<Pyramid>& pyramids)
+void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
-    // myPyramid.update(program, window);
-    // Loop through all pyramids and update + render each
-    for (auto& pyramid : pyramids) 
-    {
-        // Each triangle must update and render before the next one comes in
-        // this is because the transform matrix is going to be changed
-        pyramid.update(program, window);  // set correct transform
-        pyramid.render();
-    }
-    
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-void renderAll(std::vector<Pyramid>& pyramids)
-{
-    for (auto& pyramid : pyramids)
-        pyramid.render();
-
-}
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
@@ -175,4 +167,34 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+}
+
+// glfw: whenever the mouse moves, this callback is called
+// -------------------------------------------------------
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }

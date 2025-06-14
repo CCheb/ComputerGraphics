@@ -7,16 +7,19 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-Pyramid::Pyramid(float x, float y, float z)
+Pyramid::Pyramid(float locX, float locY, float locZ, float rotSpeed)
 {
     // initiallize the rot values to 0;
-    rot[0] = 0.0;
-    rot[1] = 0.0;
-    rot[2] = 0.0;
+    loc[0] = locX;
+    loc[1] = locY;
+    loc[2] = locZ;
 
-    loc[0] = x;
-    loc[1] = y;
-    loc[2] = z;
+    rot[0] = 0.0f;
+    rot[1] = 0.0f;
+    rot[2] = 0.0f;
+
+    this->rotSpeed = rotSpeed;
+
     // Make sure to list the vertices in CCW order since openGL considers
     // CCW to be front facing and CW back facing
     float vertices[]
@@ -76,6 +79,8 @@ Pyramid::Pyramid(Pyramid&& other) noexcept {
         rot[i] = other.rot[i];
     }
 
+    rotSpeed = other.rotSpeed;
+
     VAO = other.VAO;
     VBO = other.VBO;
 
@@ -94,6 +99,8 @@ Pyramid& Pyramid::operator=(Pyramid&& other) noexcept {
             rot[i] = other.rot[i];
         }
 
+        rotSpeed = other.rotSpeed;
+
         VAO = other.VAO;
         VBO = other.VBO;
 
@@ -104,33 +111,18 @@ Pyramid& Pyramid::operator=(Pyramid&& other) noexcept {
 }
 
 
-
-
-void Pyramid::update(unsigned int program, GLFWwindow *window)
+void Pyramid::update(unsigned int program, GLFWwindow *window, float deltaTime)
 {
-    // User input. User will be able to rotate the pyramid using wasd
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        rot[0] += 0.01;
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        rot[1] += 0.01;
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        rot[0] -= 0.01;
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        rot[1] -= 0.01;
-    
-    // Create transformation matrix that will rotate the pyramid in the x and y axes
-    // process involves building the matrix from scratch starting with the identity
-    // matrix and passing it over to a mat4 uniform in the vertex shader
+    // Build the "model" matrix and send it as `transform`
+    rot[1] += rotSpeed * deltaTime;
+
     glm::mat4 transform = glm::mat4(1.0f);
-
-    // Could optionaly move the pyramid through a transform
     transform = glm::translate(transform, glm::vec3(loc[0], loc[1], loc[2]));
-    transform = glm::rotate(transform, rot[0], glm::vec3(1.0f, 0.0f, 0.0f));
-    transform = glm::rotate(transform, rot[1], glm::vec3(0.0f, 1.0f, 0.0f));
+    transform = glm::rotate(transform, rot[1], glm::vec3(0.0f, 1.0f, 0.0f)); // spin around Y
 
+    // Send it to the shader uniform named "transform"
     unsigned int transformLoc = glGetUniformLocation(program, "transform");
     glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
-
 
 }
 
