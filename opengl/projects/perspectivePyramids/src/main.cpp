@@ -79,9 +79,14 @@ int main()
     // enable backface culling do this after setting up context
     // you can either enable depth testing or cullface 
     glEnable(GL_DEPTH_TEST);
+    
+    /*
+    Enable this to get a slight bill board effect
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+    */
+    
 
     // create shader program with Shader class
     Shader ourShader("../src/perspective.vs", "../src/perspective.fs");
@@ -92,7 +97,7 @@ int main()
     std::vector<Pyramid> pyramids;
     for(int i = 0; i < 10; i++)
         for(int j = 0; j < 10; j++)
-            pyramids.emplace_back(i-4.0f,j-4.0f,-15.0f, 0.7f);
+            pyramids.emplace_back(i-4.0f,j-4.0f,-15.0f, 0.9f);
 
     // use the program so that we can set uniforms
     // same as glUseProgram(ID); 
@@ -157,6 +162,13 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+
+    // Roll mechanic bu pressing either N or M
+    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+        camera.ProcessKeyboard(LROLL, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+        camera.ProcessKeyboard(RROLL, deltaTime);
+    
 }
 
 
@@ -173,9 +185,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
+    // Grab current mouse position
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
+    // If this is the first time then set the lastX and Y to the default which is the
+    // middle of the screen
     if (firstMouse)
     {
         lastX = xpos;
@@ -183,13 +198,17 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
         firstMouse = false;
     }
 
+    // Then calculate the difference between the previous and current mouse positions
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
+    // update the previous to the current so that it forms a cycle
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    // Finally pass the difference so that the pitch and yaw can be calculated based 
+    // on how much total offset in the x and y
+    camera.ProcessMouseMovement(window, xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
