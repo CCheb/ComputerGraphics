@@ -26,6 +26,7 @@ set(COMMON_LIBS shared)
 set(COMMON_INCLUDES ${CMAKE_SOURCE_DIR}/include)
 
 # Add projects
+# 1-gettingStarted
 add_subdirectory(src/1-gettingStarted/1-1-setup)
 add_subdirectory(src/1-gettingStarted/2-1-Triangle)
 add_subdirectory(src/1-gettingStarted/2-2-TriangleIndexed)
@@ -40,3 +41,6 @@ add_subdirectory(src/1-gettingStarted/7-1-CameraCircle)
 add_subdirectory(src/1-gettingStarted/7-2-CameraMovementDT)
 add_subdirectory(src/1-gettingStarted/7-3-CameraMouseZoom)
 add_subdirectory(src/1-gettingStarted/7-4-CameraClass)
+
+# 2-lighting
+add_subdirectory(src/2-lighting/1-Colors)
