@@ -6,9 +6,11 @@ layout (location = 1) in vec3 aNormal;  // normal attribute
 out vec3 FragPos;   // position of fragment/vertex
 out vec3 Normal;    // the normal of that particular fragment
 
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
 
 void main()
 {
@@ -22,6 +24,10 @@ void main()
     // matrix which will skew the normal.
     Normal = mat3(transpose(inverse(model))) * aNormal;  
     
+    // Know that the normal matrix should be calculated in CPU (program code) and not the
+    // GPU since it takes a heavy toll on the shaders.
+
+
     // FragPos already contains the model matrix so we can repeat it here
     gl_Position = projection * view * vec4(FragPos, 1.0);
 }

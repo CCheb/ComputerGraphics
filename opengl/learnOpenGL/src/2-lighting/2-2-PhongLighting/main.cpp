@@ -21,7 +21,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 3.1f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -77,8 +77,10 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     // build and compile our shader zprogram
+    // swap basiclighting with modelViewLighting to see lighting
+    // done in view space
     // ------------------------------------
-    Shader lightingShader("./basicLighting.vs", "./basicLighting.fs");
+    Shader lightingShader("./modelViewLighting.vs", "./modelViewLighting.fs");
     Shader lightCubeShader("./lightCube.vs", "./lightCube.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -187,7 +189,7 @@ int main()
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
         lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);   // coral
-        lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);     // white light
+        lightingShader.setVec3("lightColor", 0.0f, 1.0f, 0.0f);     // white light
         lightingShader.setVec3("lightPos", lightPos);   // position of the light for calculating diffuse
         lightingShader.setVec3("viewPos", camera.Position); // position of the camera for calculating specularity
 
@@ -211,6 +213,8 @@ int main()
         float lightCubeSin = static_cast<float>(sin(glfwGetTime()) * radius);
         float lightCubeCos = static_cast<float>(cos(glfwGetTime()) * radius);
 
+        
+
         // rotating the light cube in a circle. If N is pressed then the cube
         // will rotate in xy plane. By default it rotates in the xz plane
         if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
@@ -224,6 +228,8 @@ int main()
             lightPos.x += lightCubeSin * deltaTime;
             lightPos.z += lightCubeCos * deltaTime;
         }
+        
+        
         
         // also draw the lamp object
         lightCubeShader.use();

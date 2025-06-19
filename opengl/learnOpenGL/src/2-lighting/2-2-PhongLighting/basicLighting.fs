@@ -4,6 +4,7 @@ out vec4 FragColor;
 // the two varyings from the vertex shader
 in vec3 Normal;  
 in vec3 FragPos;  
+in vec3 LightPos;
   
 uniform vec3 lightPos;  // position of the light (dynamic)
 uniform vec3 viewPos;   // position of the camera (dynamic)
@@ -31,7 +32,7 @@ void main()
     // specular. calculates the specular highlights of the object which depends on the position of the
     // view (camera) and the angle of reflection by the light. the angle between view direction and the reflection
     // vector measures the specularity that is produced.
-    float specularStrength = 0.5;   // the shinines of the object (this measures the material)
+    float specularStrength = 0.7;   // the shinines of the object (this measures the material)
     vec3 viewDir = normalize(viewPos - FragPos);    // camera position to the fragment
     vec3 reflectDir = reflect(-lightDir, norm);     // reverse light direction (frag to light now) and reflect with norm to get reflection dir
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);   // take dot product and take power. The higher the exponent the smaller the specular circle

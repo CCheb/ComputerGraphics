@@ -14,6 +14,8 @@ add_custom_command(TARGET phong POST_BUILD
         ${CMAKE_CURRENT_SOURCE_DIR}/basicLighting.vs
 	${CMAKE_CURRENT_SOURCE_DIR}/lightCube.fs
 	${CMAKE_CURRENT_SOURCE_DIR}/lightCube.vs
+        ${CMAKE_CURRENT_SOURCE_DIR}/modelViewLighting.fs
+	${CMAKE_CURRENT_SOURCE_DIR}/modelViewLighting.vs
         $<TARGET_FILE_DIR:phong>
 )
 
