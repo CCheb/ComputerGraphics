@@ -78,9 +78,9 @@ int main()
 
     // build and compile our shader zprogram
     // swap basiclighting with modelViewLighting to see lighting
-    // done in view space
+    // done in view space. swap with gouraudShading to see gouraud shading in effect
     // ------------------------------------
-    Shader lightingShader("./modelViewLighting.vs", "./modelViewLighting.fs");
+    Shader lightingShader("./basicLighting.vs", "./basicLighting.fs");
     Shader lightCubeShader("./lightCube.vs", "./lightCube.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
