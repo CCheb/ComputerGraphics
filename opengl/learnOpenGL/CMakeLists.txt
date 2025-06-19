@@ -45,3 +45,4 @@ add_subdirectory(src/1-gettingStarted/7-4-CameraClass)
 # 2-lighting
 add_subdirectory(src/2-lighting/1-Colors)
 add_subdirectory(src/2-lighting/2-2-PhongLighting)
+add_subdirectory(src/2-lighting/3-1-Materials)
