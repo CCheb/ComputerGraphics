@@ -30,8 +30,8 @@ bool firstMouse = true;
 float deltaTime = 0.0f; 
 float lastFrame = 0.0f;
 
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+// lighting in world space (1.2f, 1,0f, 2.0f);
+glm::vec3 lightPos(-2.0f, 0.0f, 0.0f);
 
 int main()
 {
@@ -83,6 +83,8 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
+        // only positions and normals. we set the color through uniforms
+        // which will be handled by the fragment shader
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
          0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
          0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -130,9 +132,11 @@ int main()
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &VBO);
 
+    // could place this either after or before binding the vertex array
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    // clicking the recording button on the recorder
     glBindVertexArray(cubeVAO);
 
     // position attribute
@@ -159,12 +163,13 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         // per-frame time logic
+        // deltaTime for system independent movement speeds
         // --------------------
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
+        // keyboard input 
         // -----
         processInput(window);
 
@@ -182,18 +187,25 @@ int main()
         // using structs allows us to organize related data together. In this case
         // we can alter each of the lights properties (ambient, diffuse, specular)
         glm::vec3 lightColor;
-        lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
+
+        // we use sin here since it bounce between -1.0 to 1.0 which enables us to generate
+        // random colors. The constants influence the frequency of the sine wave.
+        // Its essential that we alter the speed of each color component or else the color
+        // will go from black to white if all change at the same speed
+        lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));    
         lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
         lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
-        glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // decrease the influence
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influence
+        glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // decrease the influence aka reduce the strength
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influence essentially multiplying by that constant strength
         lightingShader.setVec3("light.ambient", ambientColor);
         lightingShader.setVec3("light.diffuse", diffuseColor);
-        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f); // want full specularity FOR THE LIGHT
 
-        // material properties. Also contained ina struct and defines the objects
+        // material properties. Also contained in a struct and defines the objects
         // ambient, diffuse, and specular components in a more granular way (using vec3's)
         // compared to the previous example where we used constant floats
+
+        // Ambients and diffuse should be the same color for better realism
         lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);  // defines color
         lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);  // defines color
         lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f); // specular lighting doesn't have full effect on this object's material
@@ -201,11 +213,11 @@ int main()
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 view = camera.GetViewMatrix();    // camera lookAt matrix
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
-        // world transformation
+        // world transformation. In this case the cube stays at the origin of the world 
         glm::mat4 model = glm::mat4(1.0f);
         lightingShader.setMat4("model", model);
 
@@ -213,6 +225,17 @@ int main()
         glBindVertexArray(cubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        // Uncomment for cube light cube movement
+        /*
+        float radius = 2.0f;
+        float lightCubeX = static_cast<float>(sin(glfwGetTime()) * radius);
+        float lightCubeZ = static_cast<float>(cos(glfwGetTime()) * radius);
+        float lightCubeY = static_cast<float>(sin(glfwGetTime() * 2.0f) * 1.0f);
+        
+        lightPos.x += lightCubeX * deltaTime;
+        lightPos.z += lightCubeZ * deltaTime;
+        lightPos.y += lightCubeY * deltaTime;
+        */
 
         // also draw the lamp object
         lightCubeShader.use();
