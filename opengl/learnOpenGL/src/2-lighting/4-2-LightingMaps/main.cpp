@@ -176,6 +176,9 @@ int main()
     lightingShader.setInt("material.specular", 1);
 
 
+    glm::vec3 objectPos = {0.0f,-0.20f,0.0f};
+    float rotation = 0.0f;
+    float angRot = 2.0f;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -215,12 +218,17 @@ int main()
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
-        // fix rotation to include deltaTime
-        float angRot = 2.0f;
-        float velocity = angRot * deltaTime;
+       
+        float objectY = static_cast<float>(sin(glfwGetTime() * 1.0f) * 0.015f);
+
+        objectPos.y += objectY;
+        
+        
         // world transformation
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f,1.0f,0.0f));
+        rotation += angRot * deltaTime; // constant velocity no matter the system 
+        model = glm::translate(model, objectPos);
+        model = glm::rotate(model, rotation, glm::vec3(0.0f,1.0f,0.0f));
         lightingShader.setMat4("model", model); // object stays at the world origin 
 
         // bind diffuse map. thats why we need to specify positions for the samplers
