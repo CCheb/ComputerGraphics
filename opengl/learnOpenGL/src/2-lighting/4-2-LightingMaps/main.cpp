@@ -176,7 +176,7 @@ int main()
     lightingShader.setInt("material.specular", 1);
 
 
-    glm::vec3 objectPos = {0.0f,-0.20f,0.0f};
+    glm::vec3 objectPos = {0.0f,-0.20,0.0f};
     float rotation = 0.0f;
     float angRot = 2.0f;
     // render loop
