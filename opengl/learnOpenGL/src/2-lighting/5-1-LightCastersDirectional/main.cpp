@@ -12,9 +12,11 @@
 
 #include <iostream>
 
+// callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+// keyboard input
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
@@ -24,7 +26,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = SCR_WIDTH / 2.0f;
+float lastX = SCR_WIDTH / 2.0f; // center of the screen by default
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
@@ -34,7 +36,7 @@ float lastFrame = 0.0f;
 
 int main()
 {
-    // glfw: initialize and configure
+    // glfw: initialize and configure context
     // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -47,7 +49,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Directional Light", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -174,8 +176,9 @@ int main()
     // shader configuration
     // --------------------
     lightingShader.use();
-    lightingShader.setInt("material.diffuse", 0);
-    lightingShader.setInt("material.specular", 1);
+    // assigning texture units to each of the texture objects
+    lightingShader.setInt("material.diffuse", 0);   // GL_TEXTURE0
+    lightingShader.setInt("material.specular", 1);  // GL_TEXTURE1
 
 
     // render loop
@@ -189,6 +192,7 @@ int main()
         lastFrame = currentFrame;
 
         // input
+        // continually poll for any keyboard inputs. Great for tracking camera movement
         // -----
         processInput(window);
 
@@ -199,10 +203,12 @@ int main()
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
+        // direction of the light where the source is very far away
+        // this is a direction not a position!
         lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
         lightingShader.setVec3("viewPos", camera.Position);
 
-        // light properties
+        // light properties/intensities
         lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
         lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
@@ -247,6 +253,7 @@ int main()
 
 
         // a lamp object is weird when we only have a directional light, don't render the light object
+        // this should make sense since the light source should be very far away
         // lightCubeShader.use();
         // lightCubeShader.setMat4("projection", projection);
         // lightCubeShader.setMat4("view", view);
@@ -269,7 +276,7 @@ int main()
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &cubeVAO);
     glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &VBO);   // They share the same VBO since they are both cubes
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -292,9 +299,15 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+
+    // Enables sprint mechanic when the user holds left shift
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        camera.MovementSpeed = 5.0f;
+    else
+        camera.MovementSpeed = 2.5f;
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// glfw: whenever the window size changedd(by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
