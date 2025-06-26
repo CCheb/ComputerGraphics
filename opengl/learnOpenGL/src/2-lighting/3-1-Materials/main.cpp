@@ -191,7 +191,7 @@ int main()
         // we use sin here since it bounce between -1.0 to 1.0 which enables us to generate
         // random colors. The constants influence the frequency of the sine wave.
         // Its essential that we alter the speed of each color component or else the color
-        // will go from black to white if all change at the same speed
+        // will go from black to white if all change at the same speed.
         lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));    
         lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
         lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));

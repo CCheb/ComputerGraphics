@@ -6,12 +6,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
 #include <shader/shader_m.h>
 #include <camera.h>
 
 #include <iostream>
 
+// setting a key callback so that the key can only be pressed once
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -34,6 +35,8 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightColor = glm::vec3(1.0f);
+bool lightToggle = false;
 
 int main()
 {
@@ -61,6 +64,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -181,6 +185,8 @@ int main()
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular", 1);
 
+    // Initially set the color of the light to the default color of white
+   
 
     // render loop
     // -----------
@@ -192,7 +198,7 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
+        // input. constantly polls for input
         // -----
         processInput(window);
 
@@ -207,9 +213,27 @@ int main()
         lightingShader.setVec3("viewPos", camera.Position);
 
         // light properties
-        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+
+        // query the current state of the switch which determines the color output of the
+        // lightCube (either random or white)
+        if(lightToggle)
+        {
+            lightColor.x = static_cast<float>(cos(glfwGetTime() * 3.0) );    
+            lightColor.y = static_cast<float>(cos(glfwGetTime() * 4.0) );
+            lightColor.z = static_cast<float>(cos(glfwGetTime() * 2.0) );
+        }
+        else
+        {
+            lightColor = glm::vec3(1.0f);
+        }
+    
+        glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // decrease the influence aka reduce the strength
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+        lightingShader.setVec3("light.ambient", diffuseColor);
+        lightingShader.setVec3("light.diffuse", ambientColor);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        // attenuation values that determine how far the point light is able to light up other objects around it
         lightingShader.setFloat("light.constant", 1.0f);
         lightingShader.setFloat("light.linear", 0.09f);
         lightingShader.setFloat("light.quadratic", 0.032f);
@@ -249,17 +273,21 @@ int main()
         }
 
 
-         // also draw the lamp object
-         lightCubeShader.use();
-         lightCubeShader.setMat4("projection", projection);
-         lightCubeShader.setMat4("view", view);
-         model = glm::mat4(1.0f);
-         model = glm::translate(model, lightPos);
-         model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-         lightCubeShader.setMat4("model", model);
+        // back and forth movement for the light cube
+        float movementZ = -1.0f * static_cast<float>(sin(glfwGetTime() * 0.5f) * 0.025f);
+        lightPos.z += movementZ;
+        // also draw the lamp object
+        lightCubeShader.use();
+        lightCubeShader.setVec3("lightColor", lightColor);
+        lightCubeShader.setMat4("projection", projection);
+        lightCubeShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        lightCubeShader.setMat4("model", model);
 
-         glBindVertexArray(lightCubeVAO);
-         glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(lightCubeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -280,7 +308,7 @@ int main()
     return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// process all input: query/poll GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
@@ -295,6 +323,7 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+        
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -340,13 +369,16 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 // ---------------------------------------------------
 unsigned int loadTexture(char const * path)
 {
+    // create texture object
     unsigned int textureID;
     glGenTextures(1, &textureID);
 
+    // loading in the image along with its attributes such as width, height, and color components
     int width, height, nrComponents;
     unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
     if (data)
     {
+        // if the image is valid then determine the color formating of the image
         GLenum format;
         if (nrComponents == 1)
             format = GL_RED;
@@ -355,15 +387,18 @@ unsigned int loadTexture(char const * path)
         else if (nrComponents == 4)
             format = GL_RGBA;
 
+        // Link image with texture object
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
+        // set wrapping and filters 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+        // once binded we can free the original image
         stbi_image_free(data);
     }
     else
@@ -372,5 +407,23 @@ unsigned int loadTexture(char const * path)
         stbi_image_free(data);
     }
 
+    // return texture object
     return textureID;
+}
+
+// The callback gets called not every frame but everytime an event pertaining to it is triggered
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // change the color output of the light depending of the current state of the switch
+    if (key == GLFW_KEY_R && action == GLFW_PRESS) {
+        if(lightToggle)
+        {
+            std::cout << "Light toggled to white" << std::endl;
+            lightToggle = false;
+        }
+        else
+        {
+            std::cout << "Light toggled to random" << std::endl;
+            lightToggle = true;
+        }
+    }
 }
