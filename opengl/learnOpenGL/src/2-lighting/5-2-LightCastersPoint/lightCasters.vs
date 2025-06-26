@@ -13,7 +13,11 @@ uniform mat4 projection;
 
 void main()
 {
+    // we are doing lighting in world space so we need each fragment in world space which we
+    // will send over to the fragment shader
     FragPos = vec3(model * vec4(aPos, 1.0));
+
+    // Multiplied with normal matrix to deal with any non-uniform scales if any
     Normal = mat3(transpose(inverse(model))) * aNormal;  
     TexCoords = aTexCoords;
     
