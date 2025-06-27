@@ -60,6 +60,8 @@ void main()
     
     // spotlight (soft edges)
     // theta defines the angle between the spotlight direction (front) and the light direction (difference between light position and fragment pos)
+    // theta needs to be a higher cos value so that in turn produces a smaller angle that fits within phi and gamma
+    // a higher cos value (towards 1.0) produces a smaller angle!
     float theta = dot(lightDir, normalize(-light.direction)); 
     // epsilon is the difference between the inner and outer cone radiouses. This will help in creating a smooth interpolation of light intensity between 
     // the inner and outer cones. 
