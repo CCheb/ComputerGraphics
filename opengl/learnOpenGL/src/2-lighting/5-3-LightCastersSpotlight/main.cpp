@@ -15,6 +15,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // helper functions for processing keyboard input and loading textures respectively
 void processInput(GLFWwindow *window);
@@ -33,6 +34,9 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+// lighting
+glm::vec3 lightColor = glm::vec3(0.8f);
 
 int main()
 {
@@ -61,6 +65,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -219,10 +224,10 @@ int main()
         lightingShader.setVec3("viewPos", camera.Position);
 
         // light properties
-        lightingShader.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
+        lightingShader.setVec3("light.ambient", 0.5f, 0.5f, 0.5f);
         // we configure the diffuse intensity slightly higher; the right lighting conditions differ with each lighting method and environment.
         // each environment and lighting type requires some tweaking to get the best out of your environment.
-        lightingShader.setVec3("light.diffuse", 0.8f, 0.8f, 0.8f);
+        lightingShader.setVec3("light.diffuse", lightColor);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
         // The flashlight would also have attenuation built in
         lightingShader.setFloat("light.constant", 1.0f);
@@ -356,6 +361,14 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if(key == GLFW_KEY_R && action == GLFW_PRESS)
+        lightColor = glm::vec3(1.0f,0.0f,0.0f);
+    if(key == GLFW_KEY_T && action == GLFW_PRESS)
+        lightColor = glm::vec3(0.8f);
 }
 
 // utility function for loading a 2D texture from file

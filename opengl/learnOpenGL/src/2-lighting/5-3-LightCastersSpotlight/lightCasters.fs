@@ -68,8 +68,10 @@ void main()
     // (more towards the outer cone) and 1.0 (more towards the inner cone)
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
     // From here we multiply the light intensity with the diffuse and  specular components thus creating a flashlight effect
+    // We dont alter the ambient since we dont want fragments outside the cones to be completely dark
     diffuse  *= intensity;
     specular *= intensity;
+    //ambient *= intensity;
     
     // attenuation
     float distance    = length(light.position - FragPos);   // distance between fragment and light position (more like the distance formula)
