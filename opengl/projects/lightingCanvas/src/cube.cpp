@@ -1,13 +1,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "pyramid.h"
+#include <cube.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 
-Pyramid::Pyramid(float locX, float locY, float locZ, float rotSpeed)
+Cube::Cube(float locX, float locY, float locZ, float rotSpeed)
 {
     
     // initiallize the rot values to 0;
@@ -25,25 +25,48 @@ Pyramid::Pyramid(float locX, float locY, float locZ, float rotSpeed)
     // CCW to be front facing and CW back facing
     float vertices[]
     {
-        // Base triangle (front face, CCW from front view)
-        0.5f, -0.5f,  0.0f,   1,0,0,   // right
-        -0.5f, -0.5f,  0.0f,   0,0,0,   // left
-        0.0f,  0.5f,  0.0f,   1,0,0,   // top
+         // positions          // normals          
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 
-        // Side 1
-        -0.5f, -0.5f,  0.0f,   0,1,0,   // base left
-         0.5f, -0.5f,  0.0f,   0,1,0,   // base right
-         0.0f,  0.0f, -0.5f,   0,1,0,   // back tip
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
 
-        // Side 2
-         0.5f, -0.5f,  0.0f,   0,0,1,   // base right
-         0.0f,  0.5f,  0.0f,   0,0,1,   // top
-         0.0f,  0.0f, -0.5f,   0,0,1,   // back tip
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-        // Side 3
-         0.0f,  0.5f,  0.0f,   1,1,0,   // top
-        -0.5f, -0.5f,  0.0f,   1,1,0,   // base left
-         0.0f,  0.0f, -0.5f,   1,1,0    // back tip
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 
     };
 
@@ -66,7 +89,7 @@ Pyramid::Pyramid(float locX, float locY, float locZ, float rotSpeed)
 
 }
 
-Pyramid::~Pyramid()
+Cube::~Cube()
 {
     // Do proper clean up at the end of the program
     if (VAO) glDeleteVertexArrays(1, &VAO);
@@ -74,7 +97,7 @@ Pyramid::~Pyramid()
 }
 
 // Move constructor
-Pyramid::Pyramid(Pyramid&& other) noexcept {
+Cube::Cube(Cube&& other) noexcept {
     for (int i = 0; i < 3; ++i) {
         loc[i] = other.loc[i];
         rot[i] = other.rot[i];
@@ -90,7 +113,7 @@ Pyramid::Pyramid(Pyramid&& other) noexcept {
 }
 
 // Move assignment operator
-Pyramid& Pyramid::operator=(Pyramid&& other) noexcept {
+Cube& Cube::operator=(Cube&& other) noexcept {
     if (this != &other) {
         if (VAO) glDeleteVertexArrays(1, &VAO);
         if (VBO) glDeleteBuffers(1, &VBO);
@@ -112,7 +135,7 @@ Pyramid& Pyramid::operator=(Pyramid&& other) noexcept {
 }
 
 
-void Pyramid::update(unsigned int program, GLFWwindow *window, float deltaTime)
+void Cube::update(unsigned int program, GLFWwindow *window, float deltaTime)
 {
     // Build the "model" matrix and send it as `transform`
     rot[1] += rotSpeed * deltaTime;
@@ -122,15 +145,15 @@ void Pyramid::update(unsigned int program, GLFWwindow *window, float deltaTime)
     transform = glm::rotate(transform, rot[1], glm::vec3(0.0f, 1.0f, 0.0f)); // spin around Y
 
     // Send it to the shader uniform named "transform"
-    unsigned int transformLoc = glGetUniformLocation(program, "transform");
+    unsigned int transformLoc = glGetUniformLocation(program, "model");
     glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
 }
 
-void Pyramid::render() const
+void Cube::render() const
 {
     // bind the VAO as current and render
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 12);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
