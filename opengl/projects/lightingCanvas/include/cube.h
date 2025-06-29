@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 // Forward declaration only — no include needed
 // header file only needs to know that the type exists
@@ -8,6 +9,8 @@ struct GLFWwindow;
 class Cube
 {
     public:
+        
+
         Cube(float locX, float locY, float locZ, float rotSpeed);
         ~Cube();
     

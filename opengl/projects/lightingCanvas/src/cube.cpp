@@ -7,8 +7,11 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
+
+
 Cube::Cube(float locX, float locY, float locZ, float rotSpeed)
 {
+    
     
     // initiallize the rot values to 0;
     loc[0] = locX;
@@ -83,7 +86,7 @@ Cube::Cube(float locX, float locY, float locZ, float rotSpeed)
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // color attribute
+    // normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 

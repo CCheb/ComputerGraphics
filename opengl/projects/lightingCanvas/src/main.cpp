@@ -81,16 +81,9 @@ int main()
     // you can either enable depth testing or cullface 
     glEnable(GL_DEPTH_TEST);
     
-    /*
-    Enable this to get a slight bill board effect
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    */
-    
-
     // create shader program with Shader class
     Shader lightingShader("../src/spotlight.vs", "../src/spotlight.fs");
+    Shader lightCube("../src/lightCube.vs", "../src/lightCube.fs");
     
     // create wall of cubes
     // anonymous objects are considered rvalues which are essentially
@@ -111,8 +104,8 @@ int main()
 
     glm::vec3 position = glm::vec3(-5.0f,0.0f,-15.0f);
     glm::vec3 direction = glm::normalize(glm::vec3(0.0f) - position);
-    glm::vec3 lightColor = glm::vec3(0.2f,0.2f,1.0f);
-    Spotlight spot1(position, direction, lightColor, false, lightingShader);
+    glm::vec3 lightColor = glm::vec3(0.0f,0.0f,100.0f);
+    Spotlight spot1(position, direction, lightColor, true, lightingShader);
     
     // At the end we send these matricies to the mat4 uniforms
 
@@ -133,6 +126,7 @@ int main()
         // erase previous frame contents both the color and the depth information
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        lightingShader.use();
         // pass projection matrix to shader (note that in this case it could change every frame)
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         lightingShader.setMat4("projection", projection); 
@@ -149,6 +143,11 @@ int main()
             cube.update(lightingShader.ID, window, deltaTime);
             cube.render();
         }
+
+        lightCube.use();
+        spot1.update(lightCube, projection, view);
+        spot1.render();
+
 
         
         // double buffering

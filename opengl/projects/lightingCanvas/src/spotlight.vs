@@ -12,6 +12,7 @@ uniform mat4 projection;
 void main()
 {
     FragPos = vec3(model * vec4(aPos, 1.0));
+    // Should the normal also be multiplied by the model matrix for the cube is moving/rotating?
     Normal = mat3(transpose(inverse(model))) * aNormal;  
     
     gl_Position = projection * view * vec4(FragPos, 1.0);
