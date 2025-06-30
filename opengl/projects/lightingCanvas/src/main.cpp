@@ -102,8 +102,8 @@ int main()
     lightingShader.setVec3("material.specular", glm::vec3(1.0f));
     lightingShader.setFloat("material.shininess", 32.0f);
 
-    glm::vec3 position = glm::vec3(-5.0f,0.0f,-15.0f);
-    glm::vec3 direction = glm::normalize(glm::vec3(0.0f) - position);
+    glm::vec3 position = glm::vec3(-5.0f,0.0f,-1.0f);
+    glm::vec3 direction = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
     glm::vec3 lightColor = glm::vec3(0.0f,0.0f,100.0f);
     Spotlight spot1(position, direction, lightColor, true, lightingShader);
     

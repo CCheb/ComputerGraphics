@@ -109,11 +109,11 @@ class Spotlight
             float time = glfwGetTime();
             // -10.0 -15.0
             position.x = radius * cos(rotDir * time);
-            position.z = radius * sin(rotDir * time);
+            position.z = -15.0f + radius * sin(rotDir * time);
 
 
             // serves as the spotlight dir
-            glm::vec3 front = glm::normalize(glm::vec3(0.0f) - position);
+            glm::vec3 front = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
             direction = front;
 
             
