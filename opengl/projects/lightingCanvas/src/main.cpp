@@ -127,30 +127,32 @@ int main()
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         // erase previous frame contents both the color and the depth information
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Set projection and view matricies
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+
+        // Lighting Section 
+        // ----------------
+        lightCube.use();
+        // pass projection matrix to shader (note that in this case it could change every frame)
+        lightCube.setMat4("projection", projection);
+         // camera/view transformation. Obtains the lookAt matrix with updated vectors
+        lightCube.setMat4("view", view);
+
+        spot1.update(lightingShader, lightCube);
+        lightCube.use();
+        spot1.render();
 
         lightingShader.use();
-        // pass projection matrix to shader (note that in this case it could change every frame)
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         lightingShader.setMat4("projection", projection); 
-
-        // camera/view transformation. Obtains the lookAt matrix with updated vectors
-        glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("view", view);
-        
-        spot1.move(lightingShader);
-
         // render wall of cubes
         for(auto& cube : cubes)
         {
             cube.update(lightingShader.ID, window, deltaTime);
             cube.render();
         }
-
-        lightCube.use();
-        spot1.update(lightCube, projection, view);
-        spot1.render();
-
-
         
         // double buffering
         glfwSwapBuffers(window);

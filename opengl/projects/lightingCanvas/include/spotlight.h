@@ -122,16 +122,28 @@ class Spotlight
             setSpotlight(lightingShader);
         }
 
-        void update(Shader& lightingShader, glm::mat4& projection, glm::mat4& view)
+        void update(Shader& lightingShader, Shader& lightCubeShader)
         {
-            // setting projection and view matrices
-            lightingShader.setMat4("projection", projection);
-            lightingShader.setMat4("view", view);
+            float radius = 10.0f;
+
+            // Determine ccw (true) or cw (false) direction
+            float rotDir = rotDirection ? 1.0f : -1.0f;
+            float time = glfwGetTime();
+            // -10.0 -15.0
+            position.x = radius * cos(rotDir * time);
+            position.z = -15.0f + radius * sin(rotDir * time);
+
+
+            // serves as the spotlight dir
+            glm::vec3 front = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
+            direction = front;
 
             // moving cube
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, position);
-            lightingShader.setMat4("model", model);
+            lightCubeShader.setMat4("model", model);
+
+            setSpotlight(lightingShader);
         }
 
         void render()
@@ -147,6 +159,7 @@ class Spotlight
 
         void setSpotlight(Shader& lightingShader)
         {
+            lightingShader.use();
            // lightingShader.setVec3(spotlight.append(".position"), position);
             lightingShader.setVec3("spotLight.position", position);
             lightingShader.setVec3("spotLight.direction", direction);
@@ -157,7 +170,8 @@ class Spotlight
             lightingShader.setFloat("spotLight.linear", linear);
             lightingShader.setFloat("spotLight.quadratic", quadratic);
             lightingShader.setFloat("spotLight.cutOff", innerCutoff);
-            lightingShader.setFloat("spotLight.outerCutOff", outerCutoff);     
+            lightingShader.setFloat("spotLight.outerCutOff", outerCutoff);   
+              
         }
 
 };
