@@ -104,8 +104,10 @@ int main()
 
     glm::vec3 position = glm::vec3(-5.0f,0.0f,-1.0f);
     glm::vec3 direction = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
-    glm::vec3 lightColor = glm::vec3(0.0f,0.0f,100.0f);
+    glm::vec3 lightColor = glm::vec3(100.0f,0.0f,0.0f);
     Spotlight spot1(position, direction, lightColor, true, lightingShader);
+
+    
     
     // At the end we send these matricies to the mat4 uniforms
 
