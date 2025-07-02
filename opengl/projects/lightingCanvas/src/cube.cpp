@@ -11,8 +11,6 @@
 
 Cube::Cube(float locX, float locY, float locZ, float rotSpeed)
 {
-    
-    
     // initiallize the rot values to 0;
     loc[0] = locX;
     loc[1] = locY;
@@ -160,3 +158,5 @@ void Cube::render() const
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
+/*
+*/

@@ -32,12 +32,12 @@ struct SpotLight {
 in vec3 FragPos;
 in vec3 Normal;
 
-//#define NR_SPOTLIGHTS 2
+#define NR_SPOTLIGHTS 2
 
 uniform vec3 viewPos;
 // initiallize all structs and specify each of their attributes in the application
 //uniform SpotLight spotLights[NR_SPOTLIGHTS];
-uniform SpotLight spotLight;
+uniform SpotLight spotLights[NR_SPOTLIGHTS];
 uniform Material material;
 
 // function prototype. 
@@ -48,13 +48,14 @@ void main()
     // properties
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 result;
+    vec3 result = vec3(0.0);
     
+    // make for loop instead
     // by the time we call GL_TRIANGLES we've already set all the uniforms
-    result = CalcSpotLight(spotLight, norm, FragPos, viewDir);
+    //result = CalcSpotLight(spotLights, norm, FragPos, viewDir);
     // phase 3: spot light
-   // for(int i = 0; i < NR_SPOTLIGHTS; i++)
-        //result += CalcSpotLight(spotLights[i], norm, FragPos, viewDir);    
+    for(int i = 0; i < NR_SPOTLIGHTS; i++)
+        result += CalcSpotLight(spotLights[i], norm, FragPos, viewDir);    
     
     FragColor = vec4(result, 1.0);
 }

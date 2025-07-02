@@ -91,7 +91,7 @@ int main()
     std::vector<Cube> cubes;
     for(int i = 0; i < 10; i++)
         for(int j = 0; j < 10; j++)
-            cubes.emplace_back(i-4.0f,j-4.0f,-15.0f, 0.9f);
+            cubes.emplace_back(i-4.5f,j-4.0f,-15.0f, 0.9f);
 
     // use the program so that we can set uniforms
     // same as glUseProgram(ID); 
@@ -102,10 +102,17 @@ int main()
     lightingShader.setVec3("material.specular", glm::vec3(1.0f));
     lightingShader.setFloat("material.shininess", 32.0f);
 
-    glm::vec3 position = glm::vec3(-5.0f,0.0f,-1.0f);
+    glm::vec3 position = glm::vec3(0.0f,0.0f,-1.0f);
     glm::vec3 direction = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
     glm::vec3 lightColor = glm::vec3(100.0f,0.0f,0.0f);
     Spotlight spot1(position, direction, lightColor, true, lightingShader);
+    std::string firstSpot = "spotLights[0]";
+
+    position = glm::vec3(0.0f,0.0f,-1.0f);
+    direction = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
+    lightColor = glm::vec3(0.0f,0.0f,100.0f);
+    Spotlight spot2(position, direction, lightColor, false, lightingShader);
+    std::string secondSpot = "spotLights[1]";
 
     
     
@@ -129,24 +136,33 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // Set projection and view matricies
+
+        // pass projection matrix to shader (note that in this case it could change every frame)
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        // camera/view transformation. Obtains the lookAt matrix with updated vectors
         glm::mat4 view = camera.GetViewMatrix();
 
         // Lighting Section 
         // ----------------
         lightCube.use();
-        // pass projection matrix to shader (note that in this case it could change every frame)
         lightCube.setMat4("projection", projection);
-         // camera/view transformation. Obtains the lookAt matrix with updated vectors
         lightCube.setMat4("view", view);
 
-        spot1.update(lightingShader, lightCube);
-        lightCube.use();
+        spot1.update(lightCube);
         spot1.render();
 
+        spot2.update(lightCube);
+        spot2.render();
+
+        // Cube section
+        // ----------------
         lightingShader.use();
         lightingShader.setMat4("projection", projection); 
         lightingShader.setMat4("view", view);
+
+        // Set lighting uniforms since lighting is done in the object
+        spot1.setSpotlight(lightingShader, firstSpot);
+        spot2.setSpotlight(lightingShader, secondSpot);
         // render wall of cubes
         for(auto& cube : cubes)
         {
