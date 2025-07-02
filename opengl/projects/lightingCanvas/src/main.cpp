@@ -105,14 +105,14 @@ int main()
     glm::vec3 position = glm::vec3(0.0f,0.0f,-1.0f);
     glm::vec3 direction = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
     glm::vec3 lightColor = glm::vec3(100.0f,0.0f,0.0f);
-    Spotlight spot1(position, direction, lightColor, true, lightingShader);
-    std::string firstSpot = "spotLights[0]";
+    Spotlight spot1(position, direction, lightColor, true);
+    
 
     position = glm::vec3(0.0f,0.0f,-1.0f);
     direction = glm::normalize(glm::vec3(0.0f,0.0f,-15.0f) - position);
     lightColor = glm::vec3(0.0f,0.0f,100.0f);
-    Spotlight spot2(position, direction, lightColor, false, lightingShader);
-    std::string secondSpot = "spotLights[1]";
+    Spotlight spot2(position, direction, lightColor, false);
+    
 
     
     
@@ -149,10 +149,10 @@ int main()
         lightCube.setMat4("view", view);
 
         spot1.update(lightCube);
-        spot1.render();
+        spot1.render(lightCube);
 
         spot2.update(lightCube);
-        spot2.render();
+        spot2.render(lightCube);
 
         // Cube section
         // ----------------
@@ -161,8 +161,8 @@ int main()
         lightingShader.setMat4("view", view);
 
         // Set lighting uniforms since lighting is done in the object
-        spot1.setSpotlight(lightingShader, firstSpot);
-        spot2.setSpotlight(lightingShader, secondSpot);
+        spot1.setSpotlight(lightingShader, std::string("spotLights[0]"));
+        spot2.setSpotlight(lightingShader, std::string("spotLights[1]"));
         // render wall of cubes
         for(auto& cube : cubes)
         {

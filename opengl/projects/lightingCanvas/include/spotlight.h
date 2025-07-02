@@ -26,8 +26,9 @@ class Spotlight
         float constant, linear, quadratic;
         // inner and outer cones
         float innerCutoff, outerCutoff;
+        
 
-        Spotlight(glm::vec3& pos, glm::vec3& dir, glm::vec3& color, bool rotDir, Shader& lightingShader)
+        Spotlight(glm::vec3& pos, glm::vec3& dir, glm::vec3& color, bool rotDir)
         : ambient(glm::vec3(1.0f)), specular(glm::vec3(1.0f)), constant(1.0f), linear(0.09f), quadratic(0.032f),
         innerCutoff(glm::cos(glm::radians(8.5f))), outerCutoff(glm::cos(glm::radians(15.0f)))
         {
@@ -37,6 +38,7 @@ class Spotlight
             rotDirection = rotDir;
             diffuse = color;
 
+            // set the physical cube color
             //setSpotlight(lightingShader);
 
             float vertices[]
@@ -124,8 +126,9 @@ class Spotlight
             //setSpotlight(lightingShader);
         }
 
-        void render()
+        void render(Shader& lightCube)
         {
+            lightCube.setVec3("lightColor", diffuse);
             // bind the VAO as current and render
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -133,7 +136,7 @@ class Spotlight
 
    
 
-        void setSpotlight(Shader& lightingShader, std::string& it)
+        void setSpotlight(Shader& lightingShader, std::string&& it)
         {
             //lightingShader.use();
            // lightingShader.setVec3(spotlight.append(".position"), position);
