@@ -3,12 +3,15 @@
 
 #include <Missile.h>
 
+const float ROTATION_SENSITIVITY = 0.50f;
+
 Missile::Missile(glm::vec3 front, glm::vec3 position, float yaw, float pitch, float speed)
 : right(glm::vec3(0.0f)), up(glm::vec3(0.0f)), worldUp(glm::vec3(0.0f,1.0f,0.0f))
 {
     // Initialize members with user defined values
     this->front = front;
-    this->position = position;
+    this->position = position + front;
+    //this->position.z -= 0.5f;
     this->yaw = yaw;
     this->pitch = pitch;
     this->speed = speed;
@@ -173,7 +176,10 @@ void Missile::update(GLFWwindow* window, Shader& vShader, float deltaTime)
     // setting the model matrix and updating it in the vShader
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
+    model = glm::scale(model, glm::vec3(0.2f));
     model *= rotation;
+    
+
 
     vShader.setMat4("model", model);
 }
@@ -190,11 +196,11 @@ void Missile::render()
 void Missile::processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        pitch += 0.05f;
+        pitch += ROTATION_SENSITIVITY;
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        pitch -= 0.05f;
+        pitch -= ROTATION_SENSITIVITY;
      if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        yaw += 0.05f;
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        yaw -= 0.05f;
+        yaw += ROTATION_SENSITIVITY;
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        yaw -= ROTATION_SENSITIVITY;
 }

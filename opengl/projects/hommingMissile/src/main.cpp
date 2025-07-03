@@ -17,6 +17,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void processInput(GLFWwindow *window);
 
 // window settings
@@ -50,7 +51,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Lighting Canvas", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Homming Missile", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -62,6 +63,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     // tell GLFW to capture our mouse disabled
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -97,6 +99,14 @@ int main()
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         // erase previous frame contents both the color and the depth information
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+
+        missileShader.use();
+
+        missileShader.setMat4("projection", projection);
+        missileShader.setMat4("view", view);
 
         for(int i = 0; i < missiles.size(); i++)
         {
@@ -182,4 +192,14 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+// The callback gets called not every frame but everytime an event pertaining to it is triggered
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // change the color output of the light depending of the current state of the switch
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) 
+    {
+        std::cout << "Missile launched!" << std::endl;
+        missiles.emplace_back(camera.Front, camera.Position, camera.Yaw, camera.Pitch, 0.5);
+    }
 }
