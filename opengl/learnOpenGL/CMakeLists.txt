@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find system packages
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(assimp REQUIRED)
 
 # Automatically gather all source files in src/shared
 # file(GLOB SHARED_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shared/*.c ${CMAKE_SOURCE_DIR}/src/shared/*.cpp)
@@ -19,7 +21,7 @@ add_library(shared STATIC src/shared/glad.c src/shared/stb_images.cpp)
 target_include_directories(shared PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 # Link required libraries to shared library
-target_link_libraries(shared PUBLIC OpenGL::GL glfw)
+target_link_libraries(shared PUBLIC OpenGL::GL glfw assimp::assimp glm::glm)
 
 # Export shared libraries and includes to subprojects
 set(COMMON_LIBS shared)
@@ -52,3 +54,6 @@ add_subdirectory(src/2-lighting/5-1-LightCastersDirectional)
 add_subdirectory(src/2-lighting/5-2-LightCastersPoint)
 add_subdirectory(src/2-lighting/5-3-LightCastersSpotlight)
 add_subdirectory(src/2-lighting/6-1-MultipleLights)
+
+# 3-modelLoading
+add_subdirectory(src/3-modelLoading/1-modelLoading)
