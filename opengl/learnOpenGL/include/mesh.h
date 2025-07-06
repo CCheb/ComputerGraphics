@@ -32,14 +32,14 @@ struct Vertex {
 };
 
 struct Texture {
-    unsigned int id;
-    string type;
-    string path;
+    unsigned int id;    // texture object we still need to link it to a texture unit
+    string type;    // texture type: diffuse, specular, normal, etc...
+    string path;    // path to the texture
 };
 
 class Mesh {
 public:
-    // mesh Data
+    // mesh Data that will be filled in in processMesh
     vector<Vertex>       vertices;
     vector<unsigned int> indices;
     vector<Texture>      textures;
@@ -48,6 +48,7 @@ public:
     // constructor
     Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
     {
+        // shallow copy is ok in this case 
         this->vertices = vertices;
         this->indices = indices;
         this->textures = textures;
@@ -59,7 +60,7 @@ public:
     // render the mesh
     void Draw(Shader &shader) 
     {
-        // bind appropriate textures
+        // bind appropriate textures. They all start with postfix 1 at minimum
         unsigned int diffuseNr  = 1;
         unsigned int specularNr = 1;
         unsigned int normalNr   = 1;
@@ -106,18 +107,22 @@ private:
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
 
+        // click the record button
         glBindVertexArray(VAO);
         // load data into vertex buffers
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         // A great thing about structs is that their memory layout is sequential for all its items.
         // The effect is that we can simply pass a pointer to the struct and it translates perfectly to a glm::vec3/2 array which
-        // again translates to 3/2 floats which translates to a byte array.
+        // again translates to 3/2 floats which translates to a byte array. Think of it as a stack of float arrays where each layer is a completed vertex!
+
+        // How big the buffer is with vertices.size()... and the start of the data with the pointer &vertices[0]
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
 
+        // same idea with the ebo as it contains the order to render the mesh's faces.
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
-        // set the vertex attribute pointers
+        // set the vertex attribute pointers. In this example we set them but we dont use the majority of them
         // vertex Positions
         glEnableVertexAttribArray(0);	
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
