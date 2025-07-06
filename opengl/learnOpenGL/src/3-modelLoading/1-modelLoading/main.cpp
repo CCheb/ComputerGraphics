@@ -7,13 +7,16 @@
 
 #include <shader/shader_m.h>
 #include <camera.h>
-#include <model.h>
+#include <model.h>  // includes assimp, shader.h, and mesh.h internally
 
 #include <iostream>
 
+// callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
 void processInput(GLFWwindow *window);
 
 // settings
@@ -30,9 +33,12 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+// rendering settings
+bool polygonMode = false;
+
 int main()
 {
-    // glfw: initialize and configure
+    // glfw: initialize and configure context
     // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -52,10 +58,12 @@ int main()
         glfwTerminate();
         return -1;
     }
+    // linking callbacks
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -69,6 +77,8 @@ int main()
     }
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    // else the model will render weirdly. Opengl has its y flippled by default so we need 
+    // to flip it back 
     stbi_set_flip_vertically_on_load(true);
 
     // configure global opengl state
@@ -81,7 +91,13 @@ int main()
 
     // load models
     // -----------
-    // FileSystem::getPath("resources/objects/backpack/backpack.obj")
+    // Model object includes a set of mesh objects which originate from the scene
+    // object which contains all data about the imported model. A model contains one 
+    // or more meshes with each mesh specifying its own vertex data (positions, normals, 
+    // texture coordinates, and face indicies) along with material/texture data such as 
+    // specular and diffuse maps
+
+    //It is these meshes, when combined, that help produce the final model that we see!
     std::string modelPath = "resources/objects/backpack/backpack.obj";
     Model ourModel(modelPath);
 
@@ -95,11 +111,12 @@ int main()
     {
         // per-frame time logic
         // --------------------
+        // deltaTime for system independent velocities
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
+        // keyboard input
         // -----
         processInput(window);
 
@@ -109,19 +126,29 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
+        // only using one shader program since we dont have lighting yet
         ourShader.use();
 
         // view/projection transformations
+        // idea: when I resize the window, the aspect ratio should also resize itself 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 view = camera.GetViewMatrix();    // camera lookAt matrix 
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene. Camera is initially pushed back by 3
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
+
+        // check state of polygonMode and render the appropriate mode (wireframe or fill)
+        if(polygonMode)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        // We simply call the draw function to render the model. All of the setup is done in the back-end
         ourModel.Draw(ourShader);
 
 
@@ -191,4 +218,12 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+// For actions that need to be done occasionally not every frame
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    // switch between fill and wireframe mode by changing the state of the switch
+    if(key == GLFW_KEY_P && action == GLFW_PRESS)
+        polygonMode = (!polygonMode) ? true : false;
 }
