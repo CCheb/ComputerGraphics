@@ -61,6 +61,7 @@ public:
     void Draw(Shader &shader) 
     {
         // bind appropriate textures. They all start with postfix 1 at minimum
+       
         unsigned int diffuseNr  = 1;
         unsigned int specularNr = 1;
         unsigned int normalNr   = 1;
