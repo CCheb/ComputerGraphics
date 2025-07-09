@@ -141,7 +141,7 @@ int main()
     glEnableVertexAttribArray(1);
 
 
-    // load and create a texture 
+    // load and create a texture. They have type unsigned int since they will act as the textures id on the gpu
     // -------------------------
     unsigned int texture1, texture2;
     // texture 1
@@ -227,6 +227,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
         // bind textures on corresponding texture units/samplers
+        // GL_TEXTURE_2D refers to the currently active texture unit
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);

@@ -66,6 +66,10 @@ public:
         unsigned int specularNr = 1;
         unsigned int normalNr   = 1;
         unsigned int heightNr   = 1;
+        // At this point each texture has its data. now we need to
+        // bind them to the appropriate samplers so that the shaders are able
+        // to apply them to the object
+        // we are making sure the shader knows which texture unit to sample from for each texture type (diffuse, specular, etc.)
         for(unsigned int i = 0; i < textures.size(); i++)
         {
             glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
@@ -73,7 +77,7 @@ public:
             string number;
             string name = textures[i].type;
             if(name == "texture_diffuse")
-                number = std::to_string(diffuseNr++);
+                number = std::to_string(diffuseNr++);   // remember: ++ = assigning then incrementing
             else if(name == "texture_specular")
                 number = std::to_string(specularNr++); // transfer unsigned int to string
             else if(name == "texture_normal")
@@ -82,8 +86,13 @@ public:
                 number = std::to_string(heightNr++); // transfer unsigned int to string
 
             // now set the sampler to the correct texture unit
+            // "Sample from texture unit i"
             glUniform1i(glGetUniformLocation(shader.ID, (name + number).c_str()), i);
-            // and finally bind the texture
+            // and finally bind the texture with the currently set texture unit
+            // the id holds the location of the sampler/texture unit and we are binding the
+            // current texture to that sampler
+
+            // binding the current texture to the global anchor point/current active texture unit
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
         }
         

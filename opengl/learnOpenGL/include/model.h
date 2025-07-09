@@ -273,7 +273,7 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool gam
     string filename = string(path);
     filename = directory + '/' + filename;
 
-    // Create texture object
+    // Create texture object. we are given an ID to identify the texture on the gpu
     unsigned int textureID;
     glGenTextures(1, &textureID);
 
