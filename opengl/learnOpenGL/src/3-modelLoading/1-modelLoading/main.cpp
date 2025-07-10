@@ -36,6 +36,11 @@ float lastFrame = 0.0f;
 // rendering settings
 bool polygonMode = false;
 
+// lighting
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightColor = glm::vec3(1.0f); // white light
+
+
 int main()
 {
     // glfw: initialize and configure context
@@ -88,6 +93,7 @@ int main()
     // build and compile shaders
     // -------------------------
     Shader ourShader("modelLoading.vs", "modelLoading.fs");
+    Shader lightShader("lightCube.vs", "lightCube.fs");
 
     // load models
     // -----------
@@ -101,6 +107,65 @@ int main()
     std::string modelPath = "resources/objects/backpack/backpack.obj";
     Model ourModel(modelPath);
 
+
+    // light cube
+    float vertices[] = {
+        // positions      
+        -0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f, 
+         0.5f,  0.5f, -0.5f,  
+         0.5f,  0.5f, -0.5f, 
+        -0.5f,  0.5f, -0.5f, 
+        -0.5f, -0.5f, -0.5f, 
+
+        -0.5f, -0.5f,  0.5f,  
+         0.5f, -0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f,  
+        -0.5f,  0.5f,  0.5f,  
+        -0.5f, -0.5f,  0.5f,  
+
+        -0.5f,  0.5f,  0.5f, 
+        -0.5f,  0.5f, -0.5f, 
+        -0.5f, -0.5f, -0.5f, 
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f,  0.5f, 
+        -0.5f,  0.5f,  0.5f, 
+
+         0.5f,  0.5f,  0.5f, 
+         0.5f,  0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f, 
+
+        -0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f,  0.5f, 
+         0.5f, -0.5f,  0.5f,  
+        -0.5f, -0.5f,  0.5f,  
+        -0.5f, -0.5f, -0.5f, 
+
+        -0.5f,  0.5f, -0.5f, 
+         0.5f,  0.5f, -0.5f, 
+         0.5f,  0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f,  
+        -0.5f,  0.5f,  0.5f, 
+        -0.5f,  0.5f, -0.5f
+    };
+
+    // generate and setup buffers 
+    unsigned int VBO, lightVAO;
+    glGenVertexArrays(1, &lightVAO);
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // only need position for the light source
+    glBindVertexArray(lightVAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
     
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -129,6 +194,19 @@ int main()
         // only using one shader program since we dont have lighting yet
         ourShader.use();
 
+        ourShader.setVec3("light.position", lightPos);
+        ourShader.setVec3("viewPos", camera.Position);
+
+        ourShader.setVec3("light.ambient", glm::vec3(0.2f));
+        ourShader.setVec3("light.diffuse", glm::vec3(0.8f));
+        ourShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+        ourShader.setFloat("light.constant", 1.0f);
+        ourShader.setFloat("light.linear", 0.09f);
+        ourShader.setFloat("light.quadratic", 0.032f);
+
+        ourShader.setFloat("shininess", 2.0f);
+
         // view/projection transformations
         // idea: when I resize the window, the aspect ratio should also resize itself 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -150,6 +228,21 @@ int main()
 
         // We simply call the draw function to render the model. All of the setup is done in the back-end
         ourModel.Draw(ourShader);
+
+
+        // set lighting here
+        lightShader.use();
+        lightShader.setVec3("lightColor", lightColor);
+
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        lightShader.setMat4("model", model);
+
+        glBindVertexArray(lightVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

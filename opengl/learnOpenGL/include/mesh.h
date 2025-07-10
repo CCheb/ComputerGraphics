@@ -93,6 +93,7 @@ public:
             // current texture to that sampler
 
             // binding the current texture to the global anchor point/current active texture unit
+            // sampler -> texture unit -> texture object
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
         }
         
@@ -124,6 +125,9 @@ private:
         // A great thing about structs is that their memory layout is sequential for all its items.
         // The effect is that we can simply pass a pointer to the struct and it translates perfectly to a glm::vec3/2 array which
         // again translates to 3/2 floats which translates to a byte array. Think of it as a stack of float arrays where each layer is a completed vertex!
+        // in other words a struct can be translated into a single array since continous in memory.
+
+        // [position, normals, texcoords, tangents, ...] = one vertex/row
 
         // How big the buffer is with vertices.size()... and the start of the data with the pointer &vertices[0]
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  

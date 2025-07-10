@@ -12,8 +12,8 @@ struct Material {
 struct Light {
     vec3 position;  
   
-    vec3 ambient;
-    vec3 diffuse;
+    vec3
+    vec3 diffuse; ambient;
     vec3 specular;
 	
     float constant;

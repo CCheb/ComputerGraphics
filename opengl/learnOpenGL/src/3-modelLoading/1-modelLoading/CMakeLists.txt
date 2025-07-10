@@ -12,6 +12,8 @@ add_custom_command(TARGET modelLoading POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/modelLoading.fs
         ${CMAKE_CURRENT_SOURCE_DIR}/modelLoading.vs
+        ${CMAKE_CURRENT_SOURCE_DIR}/lightCube.vs
+        ${CMAKE_CURRENT_SOURCE_DIR}/lightCube.fs
         $<TARGET_FILE_DIR:modelLoading>
 )
 
@@ -21,3 +23,4 @@ add_custom_command(TARGET modelLoading POST_BUILD
     ${CMAKE_SOURCE_DIR}/resources/objects/backpack
     $<TARGET_FILE_DIR:modelLoading>/resources/objects/backpack
 )
+

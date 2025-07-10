@@ -35,7 +35,7 @@ public:
     // Texture type is a struct containing essential texture information such as location and type
     vector<Texture> textures_loaded;    
 
-    // A model is composed of one to many meshes and we keep those objects in a vector. Each mesh contains unique vertex and texture information 
+    // A model is composed of one to many meshes and we keep those objects in a vector. Each mesh contains unique vertex and texture information contained in vectors
     vector<Mesh>    meshes;
     string directory;
     bool gammaCorrection;
@@ -172,10 +172,10 @@ private:
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
 
             // Once we have the position, normal, and text coords for the current vertex we push the struct to the vertices vector
-            // thus completing 1/3 of the mesh object
+            // thus completing 1/3 of the mesh object. This process would repeat for each vertex of the mesh since they all specify unique information
             vertices.push_back(vertex);
         }
-        // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
+        // now walk through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
         // Faces represent the primitive shapes that make up the mesh. They can be seen when turning on wireframe mode.
         for(unsigned int i = 0; i < mesh->mNumFaces; i++)
         {
@@ -201,7 +201,7 @@ private:
         // normal: texture_normalN
 
         // A mesh could, as its material, contain multiple maps. We pass in the typeName to agree with the convention
-        // 1. diffuse maps
+        // 1. diffuse maps result should be all diffuse maps in a vector of textures 
         vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
         // insert the contents of the map at the end of the textures vector 
         textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
@@ -209,10 +209,10 @@ private:
         vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
         textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
         // 3. normal maps
-        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+        vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         // 4. height maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
         
         // return a mesh object created from the extracted mesh data
@@ -226,7 +226,7 @@ private:
     vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
     {
         vector<Texture> textures;
-        // loop through the ammount of textures matching the type
+        // loop through the ammount of textures matching the type this would repeat for every diffuse, specular etc
         for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
         {
             // will contain the filepath to the texture. we identify that texture by passing in the type along with the id via i
@@ -250,7 +250,7 @@ private:
 
                 // TextureFromFile is a helper function that helps create the texture object given the appropriate file path!
                 // this is in short the texture object that we have seem before in other examples
-                texture.id = TextureFromFile(str.C_Str(), this->directory);
+                texture.id = TextureFromFile(str.C_Str(), this->directory); // actual texture object
                 texture.type = typeName;    // set the type name this is important for setting the samplers
                 texture.path = str.C_Str(); // Should just be the name of the texture not the entire path
 
