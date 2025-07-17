@@ -25,11 +25,16 @@ uniform Light light;
 // In this case we are only using one texture while discarding the rest (specular, normal, height, etc)
 // The sampler points to a texture unit and that texture unit will point to the texture data via its ID
 uniform sampler2D texture_diffuse1;
-uniform sampler2D texture_specular2;
+uniform sampler2D texture_specular1;
 uniform float shininess;
 
 void main()
 {   
+    // The specular map is inherently black and white thus its color component is set to gray.
+    // our texture loading will automatically set the color component to GL_RED if there is
+    // only one color component. The result is a red tint for the texture. This can be fixed
+    // by distributing the red component to the green and blue components.
+    vec3 gray = vec3(texture(texture_specular1, TexCoords).r);
     // ambient
     // --------
     vec3 ambient = light.ambient * texture(texture_diffuse1, TexCoords).rgb;
@@ -49,7 +54,7 @@ void main()
     vec3 reflectDir = reflect(-lightDir, norm);  
     // calculate specular highlight
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 specular = light.specular * spec * texture(texture_specular2, TexCoords).rgb;  
+    vec3 specular = light.specular * spec * gray;  
     
     // attenuation. allows us to light up objects within a certain distance
     float distance    = length(light.position - FragPos);
@@ -60,5 +65,6 @@ void main()
     specular *= attenuation;
 
     vec3 result = ambient + diffuse + specular;
+    
     FragColor = vec4(result, 1.0);
 }

@@ -254,6 +254,8 @@ private:
                 texture.type = typeName;    // set the type name this is important for setting the samplers
                 texture.path = str.C_Str(); // Should just be the name of the texture not the entire path
 
+                string filename = this->directory + '/' + string(str.C_Str());
+                std::cout << typeName << " : " << filename << std::endl;
                 // not only do we push the texture to the local textures vector but we save it internally that way we dont need to load the same texture again
                 textures.push_back(texture);
                 textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecessary load duplicate textures.

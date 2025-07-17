@@ -106,6 +106,7 @@ int main()
     //It is these meshes, when combined, that help produce the final model that we see!
     std::string modelPath = "resources/objects/backpack/backpack.obj";
     Model ourModel(modelPath);
+    Model ourModel2(modelPath);
 
 
     // light cube
@@ -187,7 +188,7 @@ int main()
 
         // render
         // ------
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
@@ -205,7 +206,7 @@ int main()
         ourShader.setFloat("light.linear", 0.09f);
         ourShader.setFloat("light.quadratic", 0.032f);
 
-        ourShader.setFloat("shininess", 2.0f);
+        ourShader.setFloat("shininess", 64.0f);
 
         // view/projection transformations
         // idea: when I resize the window, the aspect ratio should also resize itself 
@@ -229,6 +230,16 @@ int main()
         // We simply call the draw function to render the model. All of the setup is done in the back-end
         ourModel.Draw(ourShader);
 
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 6.0f)); // translate it down so it's at the center of the scene. Camera is initially pushed back by 3
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        ourShader.setMat4("model", model);
+
+        ourModel2.Draw(ourShader);
+
+        float radius = 3.0;
+        lightPos.x = static_cast<float>(cos(glfwGetTime()) * radius);
+        lightPos.z = static_cast<float>(sin(glfwGetTime()) * radius);
 
         // set lighting here
         lightShader.use();

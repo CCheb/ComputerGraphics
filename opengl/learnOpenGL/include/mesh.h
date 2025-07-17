@@ -53,6 +53,9 @@ public:
         this->indices = indices;
         this->textures = textures;
 
+        for(int i = 0; i < textures.size(); i++)
+            std::cout << textures[i].type << i << " : " << textures[i].path << std::endl;
+
         // now that we have all the required data, set the vertex buffers and its attribute pointers.
         setupMesh();
     }
@@ -95,6 +98,8 @@ public:
             // binding the current texture to the global anchor point/current active texture unit
             // sampler -> texture unit -> texture object
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
+
+            
         }
         
         // draw mesh

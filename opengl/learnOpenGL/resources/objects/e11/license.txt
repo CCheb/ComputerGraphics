@@ -1,0 +1,11 @@
+Model Information:
+* title:	E-11 Blaster Rifle - Star Wars
+* source:	https://sketchfab.com/3d-models/e-11-blaster-rifle-star-wars-8514552a1dda4e90ad98fb60227cdd0f
+* author:	Quiznos323 (https://sketchfab.com/quiznos323)
+
+Model License:
+* license type:	CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+* requirements:	Author must be credited. No commercial use. Modified versions must have the same license.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "E-11 Blaster Rifle - Star Wars" (https://sketchfab.com/3d-models/e-11-blaster-rifle-star-wars-8514552a1dda4e90ad98fb60227cdd0f) by Quiznos323 (https://sketchfab.com/quiznos323) licensed under CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
