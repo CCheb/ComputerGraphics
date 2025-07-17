@@ -1,0 +1,11 @@
+Model Information:
+* title:	Italian M15/42 ww2 Tank
+* source:	https://sketchfab.com/3d-models/italian-m1542-ww2-tank-fd4196a368d949e58abfc44251f39654
+* author:	jpo1703 (https://sketchfab.com/jpo1703)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Italian M15/42 ww2 Tank" (https://sketchfab.com/3d-models/italian-m1542-ww2-tank-fd4196a368d949e58abfc44251f39654) by jpo1703 (https://sketchfab.com/jpo1703) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -104,9 +104,15 @@ int main()
     // specular and diffuse maps
 
     //It is these meshes, when combined, that help produce the final model that we see!
-    std::string modelPath = "resources/objects/backpack/backpack.obj";
-    Model ourModel(modelPath);
-    Model ourModel2(modelPath);
+    std::string modelPath[] = 
+    {
+        "resources/objects/backpack/backpack.obj",
+        "resources/objects/e11/scene.gltf"
+    };
+
+    Model ourModel(modelPath[0]);
+    Model ourModel2(modelPath[0]);
+    Model ourModel3(modelPath[1]);
 
 
     // light cube
@@ -197,7 +203,6 @@ int main()
 
         ourShader.setVec3("light.position", lightPos);
         ourShader.setVec3("viewPos", camera.Position);
-
         ourShader.setVec3("light.ambient", glm::vec3(0.2f));
         ourShader.setVec3("light.diffuse", glm::vec3(0.8f));
         ourShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
@@ -230,12 +235,28 @@ int main()
         // We simply call the draw function to render the model. All of the setup is done in the back-end
         ourModel.Draw(ourShader);
 
+        
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 6.0f)); // translate it down so it's at the center of the scene. Camera is initially pushed back by 3
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
 
         ourModel2.Draw(ourShader);
+
+        
+        // we know that in reality the camera always stays fixed in place while its the world that moves around the camera. 
+        // That is what the normal view matrix is doing. By setting the view to identity the model will be rendered in place along with the camera and wont move with the world!
+        // The camera will always stay fixed while its the world that moves around it!
+        glm::mat4 viewGun = glm::mat4(1.0f);
+        ourShader.setMat4("view", viewGun);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.2f,-0.3,-0.8f)); // offset the gun a little so that it appears on the right hand side of the screen
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f,0.0f,0.0f));    // Rotate the gun so that the barrel is facing in the -z direction
+        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f,0.0f,1.0f));
+        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));	// it's a bit too big for our scene, so scale it down
+        ourShader.setMat4("model", model);
+
+        ourModel3.Draw(ourShader);
 
         float radius = 3.0;
         lightPos.x = static_cast<float>(cos(glfwGetTime()) * radius);

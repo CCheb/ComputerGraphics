@@ -58,7 +58,7 @@ private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     void loadModel(string const &path)
     {
-        // read file via ASSIMP
+        // read file via ASSIMP. this is the first step into the model loading process
         Assimp::Importer importer;
 
         // A scene object contains all the data associated with the model and sits at the top of the tree structure. The idea is that children
@@ -99,6 +99,7 @@ private:
             // the mesh data of the current mesh which belongs to the current node.
             // Here we would collect vertex information (positions, normals, texture coords, face indicies) along with
             // material information (specular and diffuse maps etc)
+            // i signifies a particular mesh thats contained in the current node
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             meshes.push_back(processMesh(mesh, scene));
         }

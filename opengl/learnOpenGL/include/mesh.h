@@ -53,6 +53,7 @@ public:
         this->indices = indices;
         this->textures = textures;
 
+
         for(int i = 0; i < textures.size(); i++)
             std::cout << textures[i].type << i << " : " << textures[i].path << std::endl;
 
