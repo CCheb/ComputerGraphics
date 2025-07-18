@@ -40,6 +40,12 @@ bool polygonMode = false;
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 glm::vec3 lightColor = glm::vec3(1.0f); // white light
 
+// weapon bobbing
+float bobX = 0.0f;
+float bobY = 0.0f;
+float bobSpeedX = 2.0f;
+float bobSpeedY = 4.0f;
+
 
 int main()
 {
@@ -220,7 +226,11 @@ int main()
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
+        // Model 1
+        //------------
         // render the loaded model
+        // In this example we are drawing/rendering three different models
+        // its essential to draw these fully in sequential order. we could abstract this into classes and have one array to carry all of the models and simply iterate
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene. Camera is initially pushed back by 3
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
@@ -233,9 +243,11 @@ int main()
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         // We simply call the draw function to render the model. All of the setup is done in the back-end
+       
         ourModel.Draw(ourShader);
 
-        
+        // Model 2
+        //------------
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 6.0f)); // translate it down so it's at the center of the scene. Camera is initially pushed back by 3
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
@@ -244,13 +256,19 @@ int main()
         ourModel2.Draw(ourShader);
 
         
+        // Model 3
+        //------------
         // we know that in reality the camera always stays fixed in place while its the world that moves around the camera. 
         // That is what the normal view matrix is doing. By setting the view to identity the model will be rendered in place along with the camera and wont move with the world!
         // The camera will always stay fixed while its the world that moves around it!
         glm::mat4 viewGun = glm::mat4(1.0f);
         ourShader.setMat4("view", viewGun);
+
+        glm::vec3 offset = glm::vec3(0.2f,-0.3,-0.8f);
+        offset.x += bobX;
+        offset.y += bobY;
         model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.2f,-0.3,-0.8f)); // offset the gun a little so that it appears on the right hand side of the screen
+        model = glm::translate(model, offset); // offset the gun a little so that it appears on the right hand side of the screen
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f,0.0f,0.0f));    // Rotate the gun so that the barrel is facing in the -z direction
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f,0.0f,1.0f));
         model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));	// it's a bit too big for our scene, so scale it down
@@ -258,11 +276,15 @@ int main()
 
         ourModel3.Draw(ourShader);
 
+
+
+        // Lighting stuff
+        //------------
         float radius = 3.0;
         lightPos.x = static_cast<float>(cos(glfwGetTime()) * radius);
         lightPos.z = static_cast<float>(sin(glfwGetTime()) * radius);
 
-        // set lighting here
+       
         lightShader.use();
         lightShader.setVec3("lightColor", lightColor);
 
@@ -297,13 +319,31 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
         camera.ProcessKeyboard(FORWARD, deltaTime);
+        bobX = static_cast<float>(0.01f * sin(bobSpeedX * glfwGetTime()));
+        bobY = static_cast<float>(0.01f * cos(bobSpeedY * glfwGetTime()));
+    }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         camera.ProcessKeyboard(BACKWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+
+    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+        camera.MovementSpeed = 5.0f;
+        bobSpeedX = 4.0f;
+        bobSpeedY = 8.0f;
+    }
+    else
+    {
+        camera.MovementSpeed = 2.5f;
+        bobSpeedX = 2.0f;
+        bobSpeedY = 4.0f;
+    }
+    
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -351,4 +391,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // switch between fill and wireframe mode by changing the state of the switch
     if(key == GLFW_KEY_P && action == GLFW_PRESS)
         polygonMode = (!polygonMode) ? true : false;
+   
+    
 }
