@@ -57,3 +57,6 @@ add_subdirectory(src/2-lighting/6-1-MultipleLights)
 
 # 3-modelLoading
 add_subdirectory(src/3-modelLoading/1-modelLoading)
+
+# 4-advancedOpenGL
+add_subdirectory(src/4-advancedOpenGL/1-2-depthTestingView)
