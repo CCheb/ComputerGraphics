@@ -19,7 +19,7 @@ add_custom_command(TARGET depthTesting POST_BUILD
 add_custom_command(TARGET depthTesting POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/resources/textures/
-    $<TARGET_FILE_DIR:depthTesting>/resources/textures
+    $<TARGET_FILE_DIR:stencilTesting>/resources/textures
 )
 
 
