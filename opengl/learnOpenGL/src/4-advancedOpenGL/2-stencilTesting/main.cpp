@@ -12,6 +12,7 @@
 #include <model.h>
 
 #include <iostream>
+#include <algorithm>
 
 // callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -266,6 +267,15 @@ int main()
         glDisable(GL_DEPTH_TEST);   // by disabling depth testing, the highlighting will be tested for any visibility thus making it so that we are able to see it no matter if something is in the way
         
         shaderSingleColor.use();
+        // color
+        glm::vec3 lightColor = glm::vec3(1.0f);
+        // lower amplitudes and frequencies produce a smoother color transition
+        // we clamp the values so that they do not reach for 0.0f and we also alter their amplitude
+        // frequency and vertical shift
+        lightColor.x = std::clamp(static_cast<float>(1.0*sin(0.2f*glfwGetTime()) + 0.1), 0.1f, 1.0f);
+        lightColor.y = std::clamp(static_cast<float>(1.0*sin(0.5f*glfwGetTime()) + 0.3), 0.3f, 1.0f);
+        lightColor.z = std::clamp(static_cast<float>(1.0*sin(0.4f*glfwGetTime()) + 0.2), 0.2f, 1.0f);
+        shaderSingleColor.setVec3("lightColor", lightColor);
         float scale = 1.1f;
         // cubes (same process as before but know we draw scaled up versions of the cubes with the single color shader)
         glBindVertexArray(cubeVAO);
