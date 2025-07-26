@@ -61,3 +61,5 @@ add_subdirectory(src/3-modelLoading/1-modelLoading)
 # 4-advancedOpenGL
 add_subdirectory(src/4-advancedOpenGL/1-2-depthTestingView)
 add_subdirectory(src/4-advancedOpenGL/2-stencilTesting)
+add_subdirectory(src/4-advancedOpenGL/3-1-blendingDiscard)
+add_subdirectory(src/4-advancedOpenGL/3-2-blendingSort)
