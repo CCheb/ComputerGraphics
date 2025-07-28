@@ -189,11 +189,13 @@ int main()
     {
         "resources/textures/marble.jpg",
         "resources/textures/metal.png",
-        "resources/textures/grass.png"
+        "resources/textures/grass.png",
+        "resources/textures/minigun.png"
     };
     unsigned int cubeTexture = loadTexture(filePaths[0].c_str());
     unsigned int floorTexture = loadTexture(filePaths[1].c_str());
     unsigned int transparentTexture = loadTexture(filePaths[2].c_str());
+    unsigned int gunTexture = loadTexture(filePaths[3].c_str());
 
     // transparent vegetation locations
     // --------------------------------
@@ -205,6 +207,8 @@ int main()
         glm::vec3(-0.3f, 0.0f, -2.3f),
         glm::vec3 (0.5f, 0.0f, -0.6f)
     };
+
+    glm::vec3 gunLoc = glm::vec3(3.0f,0.0f,-0.48f);
 
     // shader configuration
     // --------------------
@@ -245,7 +249,7 @@ int main()
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);    // ensure to restart from scratch so as to not make any mix any transformations
+        model = glm::mat4(1.0f);    // ensure to restart from scratch s0 as to not make any mix any transformations
         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -267,6 +271,19 @@ int main()
             shader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
+
+        // gun
+        glBindTexture(GL_TEXTURE_2D, gunTexture);
+        glm::mat4 viewGun = glm::mat4(1.0f);
+        shader.setMat4("view", viewGun);
+
+        model = glm::mat4(1.0f);
+        glm::vec3 offset = glm::vec3(-0.4f,-0.02,-1.0f);
+       // model = glm::translate(model, gunLoc);
+        model = glm::translate(model, offset); // offset the gun a little so that it appears on the right hand side of the screen
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -358,7 +375,12 @@ unsigned int loadTexture(char const * path)
         else if (nrComponents == 3)
             format = GL_RGB;
         else if (nrComponents == 4)
+        {
             format = GL_RGBA;
+            std::cout << path << endl;
+        }
+
+        
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
