@@ -81,6 +81,7 @@ int main()
     // places their fragments in the color buffer. Next we render the windows (from furthest to nearest) and alow them to contribute their part into the color buffer
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
     // build and compile shaders
     // -------------------------
     Shader shader("blendingSort.vs", "blendingSort.fs");
@@ -101,7 +102,7 @@ int main()
          0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
          0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
         -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f
 
         -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,

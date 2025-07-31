@@ -12,6 +12,8 @@ add_custom_command(TARGET blendingDiscard POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/blendingDiscard.fs
         ${CMAKE_CURRENT_SOURCE_DIR}/blendingDiscard.vs
+        ${CMAKE_CURRENT_SOURCE_DIR}/pistolDiscard.fs
+        ${CMAKE_CURRENT_SOURCE_DIR}/pistolDiscard.vs
         $<TARGET_FILE_DIR:blendingDiscard>
 )
 

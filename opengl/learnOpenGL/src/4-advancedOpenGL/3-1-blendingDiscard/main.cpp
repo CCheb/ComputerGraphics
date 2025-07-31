@@ -12,10 +12,12 @@
 #include <model.h>
 
 #include <iostream>
+#include <cmath>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
@@ -32,6 +34,19 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+// weapon bobbing
+float bobX = 0.0f;
+float bobY = 0.0f;
+float bobSpeedX = 2.0f;
+float bobSpeedY = 4.0f;
+
+// pistol consts
+const int TEXT_WIDTH = 512;
+const int TEXT_HEIGHT = 128;
+const int FRAME_WIDTH = 110;
+const int FRAME_HEIGHT = 120;
+bool gunFired = false;
 
 int main()
 {
@@ -59,6 +74,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -78,6 +94,7 @@ int main()
      // build and compile shaders
     // -------------------------
     Shader shader("blendingDiscard.vs", "blendingDiscard.fs");
+    Shader pistolShader("pistolDiscard.vs", "pistolDiscard.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -190,12 +207,14 @@ int main()
         "resources/textures/marble.jpg",
         "resources/textures/metal.png",
         "resources/textures/grass.png",
-        "resources/textures/minigun.png"
+        "resources/textures/minigun.png",
+        "resources/textures/PIST2.png"
     };
     unsigned int cubeTexture = loadTexture(filePaths[0].c_str());
     unsigned int floorTexture = loadTexture(filePaths[1].c_str());
     unsigned int transparentTexture = loadTexture(filePaths[2].c_str());
     unsigned int gunTexture = loadTexture(filePaths[3].c_str());
+    unsigned int pistolTexture = loadTexture(filePaths[4].c_str());
 
     // transparent vegetation locations
     // --------------------------------
@@ -272,18 +291,76 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
 
-        // gun
+
+        // pistol
+        pistolShader.use();
+        pistolShader.setInt("texture1", 0); 
+        pistolShader.setMat4("projection", projection);
+        
+        glBindVertexArray(transparentVAO);
+        glActiveTexture(GL_TEXTURE0);  
+        glBindTexture(GL_TEXTURE_2D, pistolTexture);
+        
+        glm::mat4 pistolView = glm::mat4(1.0f);
+        pistolShader.setMat4("view", pistolView);
+
+        // normalized coordinates for each frame;
+        float frameWidthNorm  = 110.0f / 512.0f;   // = 0.21484375
+        float frameHeightNorm = 120.0f / 128.0f;  // = 0.9375
+
+        int frameIndex = 0;
+        if(gunFired)
+        {
+            static float startTime = glfwGetTime();
+            float elapsed = glfwGetTime() - startTime;
+            frameIndex = ((int)(elapsed * 10.0f)) % 4; // 10 FPS
+            if (frameIndex >= 3)
+                gunFired = false;
+        }
+       
+        
+
+        //int frameIndex = 0 % 4;
+        float u_offset = frameIndex * frameWidthNorm;
+        float v_offset = 0.0f; // single row, bottom row
+
+        pistolShader.setVec2("uOffset", u_offset, v_offset);
+        pistolShader.setVec2("uScale", frameWidthNorm, frameHeightNorm);
+
+        glDisable(GL_DEPTH_TEST);
+        model = glm::mat4(1.0f);
+        glm::vec3 offset = glm::vec3(-0.1f,-0.2,-1.0f);
+        offset.x += bobX;
+        offset.y += bobY;
+        model = glm::translate(model, offset);
+        model = glm::scale(model, glm::vec3(1.5f, 1.2f, 1.0f));
+        model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
+        pistolShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glEnable(GL_DEPTH_TEST);
+
+        /*
+        // minigun
+        // disable depth testing so that the sprite does not clip with geometry (110px, 120px)
+        // since we are basically slapping a sprite to the camera we dont want it to clip with anything in the world
+        // by disabling depth testing temporarly, the sprite's z-values wont be tested with other geometry and the fragments wont be discarded!
+        glDisable(GL_DEPTH_TEST);
         glBindTexture(GL_TEXTURE_2D, gunTexture);
         glm::mat4 viewGun = glm::mat4(1.0f);
         shader.setMat4("view", viewGun);
 
         model = glm::mat4(1.0f);
         glm::vec3 offset = glm::vec3(-0.4f,-0.02,-1.0f);
+        offset.x += bobX;
+        offset.y += bobY;
        // model = glm::translate(model, gunLoc);
         model = glm::translate(model, offset); // offset the gun a little so that it appears on the right hand side of the screen
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glEnable(GL_DEPTH_TEST);
+        */
+        
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -311,13 +388,47 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
         camera.ProcessKeyboard(FORWARD, deltaTime);
+        // A * sin(F*glfwGetTime())
+        // where A = amplitude (how wide) and F = frequency (how fast)
+        bobX = static_cast<float>(0.02f * sin(bobSpeedX * glfwGetTime()));
+        bobY = static_cast<float>(0.02f * cos(bobSpeedY * glfwGetTime()));
+    }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+
         camera.ProcessKeyboard(BACKWARD, deltaTime);
+        bobX = static_cast<float>(0.02f * sin(bobSpeedX * glfwGetTime()));
+        bobY = static_cast<float>(0.02f * cos(bobSpeedY * glfwGetTime()));
+    }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+
         camera.ProcessKeyboard(LEFT, deltaTime);
+        bobX = static_cast<float>(0.02f * sin(bobSpeedX * glfwGetTime()));
+        bobY = static_cast<float>(0.02f * cos(bobSpeedY * glfwGetTime()));
+    }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+
         camera.ProcessKeyboard(RIGHT, deltaTime);
+        bobX = static_cast<float>(0.02f * sin(bobSpeedX * glfwGetTime()));
+        bobY = static_cast<float>(0.02f * cos(bobSpeedY * glfwGetTime()));
+    }
+
+    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+        camera.MovementSpeed = 5.0f;
+        bobSpeedX = 4.0f;
+        bobSpeedY = 8.0f;
+    }
+    else
+    {
+        camera.MovementSpeed = 2.5f;
+        bobSpeedX = 2.0f;
+        bobSpeedY = 4.0f;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -356,6 +467,14 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    // notify when the pistol was fired when pressing space
+    if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+        gunFired = true;
+    
 }
 
 // utility function for loading a 2D texture from file
