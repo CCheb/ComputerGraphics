@@ -22,8 +22,8 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -46,7 +46,12 @@ const int TEXT_WIDTH = 512;
 const int TEXT_HEIGHT = 128;
 const int FRAME_WIDTH = 110;
 const int FRAME_HEIGHT = 120;
-bool gunFired = false;
+
+
+bool isFiring = false;
+float fireTimer = 0.0f;
+float frameDuration = 0.1f;
+int indexFrame = 0;
 
 int main()
 {
@@ -270,6 +275,7 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         model = glm::mat4(1.0f);    // ensure to restart from scratch s0 as to not make any mix any transformations
         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+       // model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f,1.0f,0.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -308,20 +314,24 @@ int main()
         float frameWidthNorm  = 110.0f / 512.0f;   // = 0.21484375
         float frameHeightNorm = 120.0f / 128.0f;  // = 0.9375
 
-        int frameIndex = 0;
-        if(gunFired)
+        if(isFiring)
         {
-            static float startTime = glfwGetTime();
-            float elapsed = glfwGetTime() - startTime;
-            frameIndex = ((int)(elapsed * 10.0f)) % 4; // 10 FPS
-            if (frameIndex >= 3)
-                gunFired = false;
+            fireTimer += deltaTime;
+
+            if(fireTimer >= frameDuration)
+            {
+                fireTimer -= frameDuration;
+                indexFrame++;
+
+                if (indexFrame >= 4) // 4 total frames (0 to 3)
+                {   
+                    indexFrame = 0;
+                    isFiring = false;
+                }
+            }
         }
        
-        
-
-        //int frameIndex = 0 % 4;
-        float u_offset = frameIndex * frameWidthNorm;
+        float u_offset = indexFrame * frameWidthNorm;
         float v_offset = 0.0f; // single row, bottom row
 
         pistolShader.setVec2("uOffset", u_offset, v_offset);
@@ -438,6 +448,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+    // Fullscreening functionality
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
 }
 
 // glfw: whenever the mouse moves, this callback is called
@@ -473,7 +486,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
     // notify when the pistol was fired when pressing space
     if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-        gunFired = true;
+    {
+        isFiring = true;
+        fireTimer = 0.0f;
+        indexFrame = 0;
+    }
     
 }
 
@@ -496,14 +513,14 @@ unsigned int loadTexture(char const * path)
         else if (nrComponents == 4)
         {
             format = GL_RGBA;
-            std::cout << path << endl;
+            //std::cout << path << endl;
         }
 
         
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        glGenerateMipmap(GL_TEXTURE_2D);        
 
         // GL_CLAMP_TO_EDGE takes the edges of the texture and stretches them out
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
