@@ -15,40 +15,46 @@ protected:
 	glm::vec3 pos;
 	float rot;
 
+	int sWrap;
+	int tWrap;
 	// Constructor is set to protecte since we dont want to make an object off of this parent class
 	// we create objects only from the child classes
-	GameObject(int minFilter, int magFilter, int sWrap, int tWrap);
+	GameObject(glm::vec3 pos, float rot, int minFilter, int magFilter, int sWrap, int tWrap);
 
 	// Pure virtual function which will require each child class to implement it
 	virtual void update() = 0;
 
 	// inhereted by all children;
-	void render(Shader& program, unsigned int VAO ,unsigned int textureID, int primitiveType, int triangleCount); 
-	unsigned int loadTexture(char const* path);
+	void render(Shader* program, unsigned int VAO ,unsigned int textureID, int primitiveType, int triangleCount); 
+	unsigned int loadTexture(char const* path, int sWrap, int tWrap);
 
+public:
 	// Shaders. The idea is that this would be a resource that all child classes share
-	static Shader world;
-	static Shader weapon;
+	static Shader* world;
+	//static Shader weapon;
 
 private:
 	// Texture settings;
 	int minFilter;
 	int magFilter;
-	int sWrap;
-	int tWrap;
+	
 
 };
 
 
-class Cube
+class Cube : GameObject
 {
 private:
 	static unsigned int VBO, VAO, textureID;
 	static float vertices[180];
 	glm::mat4 model;
-	int primitiveType, triangleCount;
+	int primitiveType, verticeCount;
 
 public:
-	Cube(glm::vec3 pos, float rot);
+	Cube(glm::vec3 pos, float rot, int primitiveType = GL_TRIANGLES, int verticeCount = 36);
 
+	void update() override;
+	void render();
+
+	static void cleanUp();
 };
