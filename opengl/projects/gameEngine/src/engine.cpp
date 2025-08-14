@@ -1,23 +1,24 @@
+#include "camera.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
 
 #include <engine.h>
 
+// we initiallize the pointer to null since we dont want it to cause a segmentation fault
 Shader* GameObject::world = nullptr;
 //Shader GameObject::weapon = Shader("../src/weaponShader.vs", "../src/weaponShader.fs");
 
 // GameObject
 //---------------------------
-GameObject::GameObject(glm::vec3 pos, float rot, int minFilter, int magFilter, int sWrap, int tWrap)
+GameObject::GameObject(glm::vec3 pos, float rot, int sWrap, int tWrap)
 {
     this->pos = pos;
     this->rot = rot;
-	this->minFilter = minFilter;
-	this->magFilter = magFilter;
 	this->sWrap = sWrap;
 	this->tWrap = tWrap;
 }
 
+// We take in a shader pointer and borrow it for setting up uniforms and activating the program.
 void GameObject::render(Shader* program, unsigned int VAO ,unsigned int textureID, int primitiveType, int verticeCount)
 {
 	program->use();
@@ -28,7 +29,25 @@ void GameObject::render(Shader* program, unsigned int VAO ,unsigned int textureI
 	glDrawArrays(primitiveType, 0, verticeCount);
 }
 
-unsigned int GameObject::loadTexture(char const* path, int sWrap, int tWrap)
+void GameObject::cleanShaders()
+{
+    // world shader
+    if(world != nullptr)
+    {
+        std::cout << "world shader deleted safely" << std::endl;
+        delete world;
+        world = nullptr;
+    }
+    else
+    {
+        std::cout << "world shader was going to be deleted when it was null!" << std::endl;
+    }
+
+    // weapon shader
+}
+
+// loadTexture is a static function and can only work with other static members thus we pass sWrap and tWrap as parameters
+unsigned int GameObject::loadTexture(char const* path, int sWrap, int tWrap, int minFilter, int magFilter)
 {
 	unsigned int textureID;
     glGenTextures(1, &textureID);
@@ -55,8 +74,8 @@ unsigned int GameObject::loadTexture(char const* path, int sWrap, int tWrap)
         // GL_CLAMP_TO_EDGE takes the edges of the texture and stretches them out
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? sWrap : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? tWrap : GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter); // GL_LINEAR_MIPMAP_LINEAR
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);	// GL_LINEAR
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter); // Default value: GL_LINEAR_MIPMAP_LINEAR
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);	// Default value: GL_LINEAR
 
         stbi_image_free(data);
     }
@@ -118,11 +137,13 @@ float Cube::vertices[] =
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 
 };
+// initialize VAO, VBO, and textureID to 0 which signifies that they dont point to any OpenGL object
 unsigned int Cube::VAO = 0;
 unsigned int Cube::VBO = 0;
 unsigned int Cube:: textureID = 0;
-Cube::Cube(glm::vec3 pos, float rot, int primitiveType, int verticeCount) : GameObject(pos, rot, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
+Cube::Cube(glm::vec3 pos, float rot, int primitiveType, int verticeCount) : GameObject(pos, rot, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE)
 {
+    // primitiveType and verticeCount have default values so this is skipped if nothing is specified by the user
     this->primitiveType = primitiveType;
     this->verticeCount = verticeCount;
 
@@ -146,22 +167,28 @@ Cube::Cube(glm::vec3 pos, float rot, int primitiveType, int verticeCount) : Game
         textureID = GameObject::loadTexture("../resources/textures/marble.jpg", sWrap, tWrap);
     }
 
+    // default the model matrix. In this case we dont do perspective and view matrices since that will be handled by the camera
     model = glm::mat4(1.0f);
 }
 
 void Cube::update() 
 {
+    // make sure to reset the model matrix or else it will remember previous translates and rotations
+    GameObject::world->use();
     model = glm::mat4(1.0f);
     model = glm::translate(model, pos);
     model = glm::rotate(model, glm::radians(rot), glm::vec3(1.0,1.0f,1.0f));
     GameObject::world->setMat4("model", model);
 }
 
-void Cube::render()
+// Cubes render() acts like a wrapper to GameObjects render()
+void Cube::draw()
 {
     GameObject::render(GameObject::world, VAO, textureID, primitiveType, verticeCount);
 }
 
+// Always make sure to clean up OpenGL data like VAO's and VBO's. In this case we implement a static function
+// that will be called at the end of main outside of the loop.
 void Cube::cleanUp()
 {
     if(VAO != 0)
@@ -170,6 +197,35 @@ void Cube::cleanUp()
     if(VBO != 0)
         glDeleteBuffers(1, &VBO);
 }
+
+
+
+// Player
+//----------------------
+Player::Player(glm::vec3 pos, float rot, unsigned int scr_width, unsigned int scr_height): GameObject(pos, rot, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE), camera(pos, rot)
+{
+    projection = glm::mat4(1.0f);
+    view = glm::mat4(1.0f);
+    model = glm::mat4(1.0f);
+
+    this->scr_width = scr_width;
+    this->scr_height = scr_height;
+}
+
+void Player::update()
+{
+    GameObject::world->use();
+    projection = glm::perspective(glm::radians(camera.Zoom), (float)scr_width / (float)scr_height, 0.1f, 100.0f);
+    view = camera.GetViewMatrix();
+    model = glm::mat4(1.0f);
+    GameObject::world->setMat4("projection", projection);
+    GameObject::world->setMat4("view", view);   
+}
+
+void Player::draw()
+{}
+
+
 
 
 

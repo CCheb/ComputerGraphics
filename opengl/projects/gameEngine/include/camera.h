@@ -14,7 +14,7 @@ enum Camera_Movement {
 };
 
 // Default camera values
-const float YAW         = -90.0f;
+const float YAW         = -90.0f;   // causes the camera to look down the -z axis by default
 const float PITCH       =  0.0f;
 const float SPEED       =  2.5f;
 const float SENSITIVITY =  0.1f; // Needs to be quite low
@@ -40,11 +40,11 @@ public:
     float Zoom;
 
     // constructor with vectors
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), float yaw = YAW , float pitch = PITCH, glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f)) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = position;
         WorldUp = up;
-        Yaw = yaw;
+        Yaw = (yaw == YAW) ? yaw : yaw - 90.0f;
         Pitch = pitch;
         updateCameraVectors();
     }

@@ -12,6 +12,8 @@
 #include <engine.h>
 
 #include <iostream>
+#include <vector>
+#include <memory>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -24,10 +26,14 @@ unsigned int SCR_WIDTH = 800;
 unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
+//Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), 45.0f);
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
+
+
+Player player(glm::vec3(0.0f, 0.0f, 3.0f), 45.0f);
 
 // timing
 float deltaTime = 0.0f;
@@ -77,11 +83,24 @@ int main()
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
+    // After properly setting up context we then assign a shader program to world.
     GameObject::world = new Shader("../src/worldShader.vs", "../src/worldShader.fs");
 
-    Cube test(glm::vec3(0.0f,0.0f,-3.0f), 0.0f);
+    // creating a vector of gameobjects. In this case we have base pointers that point to
+    // child objects via polymorphism. Ex: GameObject* base = Cube(...);
+    // Main caveat is that base pointer is only able to access virtual functions that the child overrode
+
+    // A unique ptr is a smart pointer that 'owns' to what ever resource it points to. Once it goes out of scope
+    // the memory is automatically freed
+    std::vector<std::unique_ptr<GameObject>> gameObjects;
+    // push back a unique pointer to the vector of that points to a cube object
+    // make_unique creates a raw pointer to the specified type and then wraps it around a unique ptr/
+    gameObjects.push_back(std::make_unique<Cube>(glm::vec3(0.0f, 0.0f, 0.0f), 0.0f));   // Cube
+    gameObjects.push_back(std::make_unique<Cube>(glm::vec3(2.0f, 0.0f, 0.0f), 0.0f));
+
 
     
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -95,23 +114,33 @@ int main()
         // keyboard input
         // -----
         processInput(window);
-        
-        
+
+        // render
+        // ------
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+        /*
+        // camera stuff
         GameObject::world->use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
         GameObject::world->setMat4("projection", projection);
         GameObject::world->setMat4("view", view);   
-            
+        */
 
-        // render
-        // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // updating camera
+        player.update();
 
-        test.update();
-        test.render();
+
+        // update and render loop. we make sure to update objects before we draw them
+        for(auto& object : gameObjects)
+        {
+            object->update();
+            object->draw();
+        }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -119,10 +148,9 @@ int main()
         glfwPollEvents();
     }
 
-    test.cleanUp();
-
-    delete GameObject::world;
-    GameObject::world = nullptr;
+    // clean ups 
+    Cube::cleanUp();    // cleans up the cubes shared resources (VAO, VBO since these are static)
+    GameObject::cleanShaders(); // makes sure to handle shader pointer and free it properly
 
     glfwTerminate();
     return 0;
@@ -137,35 +165,35 @@ void processInput(GLFWwindow *window)
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
-        camera.ProcessKeyboard(FORWARD, deltaTime);
+        player.camera.ProcessKeyboard(FORWARD, deltaTime);
         
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     {
 
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
+        player.camera.ProcessKeyboard(BACKWARD, deltaTime);
         
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     {
 
-        camera.ProcessKeyboard(LEFT, deltaTime);
+        player.camera.ProcessKeyboard(LEFT, deltaTime);
        
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     {
 
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+        player.camera.ProcessKeyboard(RIGHT, deltaTime);
        
     }
 
     if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     {
-        camera.MovementSpeed = 5.0f;
+        player.camera.MovementSpeed = 5.0f;
     }
     else
     {
-        camera.MovementSpeed = 2.5f;
+        player.camera.MovementSpeed = 2.5f;
     }
 }
 
@@ -177,8 +205,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
     // Fullscreening functionality
-    SCR_WIDTH = width;
-    SCR_HEIGHT = height;
+    player.scr_width = width;
+    player.scr_height = height;
 }
 
 // glfw: whenever the mouse moves, this callback is called
@@ -200,14 +228,14 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    player.camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+    player.camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
