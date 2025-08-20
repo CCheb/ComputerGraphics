@@ -311,9 +311,12 @@ int main()
         pistolShader.setMat4("view", pistolView);
 
         // normalized coordinates for each frame;
+        // sprite width / texture width
+        // sprite height / texture height
         float frameWidthNorm  = 110.0f / 512.0f;   // = 0.21484375
         float frameHeightNorm = 120.0f / 128.0f;  // = 0.9375
 
+        // main concept is that we change the indexFrame to reflect a new sprite every certain number of frames
         if(isFiring)
         {
             fireTimer += deltaTime;
@@ -334,7 +337,10 @@ int main()
         float u_offset = indexFrame * frameWidthNorm;
         float v_offset = 0.0f; // single row, bottom row
 
+        // sets the texture coodinates to grab from instead of the entire texture
+        // we limit the sampler to only grab from a certain area
         pistolShader.setVec2("uOffset", u_offset, v_offset);
+        // set the limit of where we can grab from
         pistolShader.setVec2("uScale", frameWidthNorm, frameHeightNorm);
 
         glDisable(GL_DEPTH_TEST);

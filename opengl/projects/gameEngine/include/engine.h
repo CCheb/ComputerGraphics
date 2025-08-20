@@ -56,7 +56,7 @@ private:
 	int primitiveType, verticeCount;
 
 public:
-	Cube(glm::vec3 pos, float rot, int primitiveType = GL_TRIANGLES, int verticeCount = 36);
+	Cube(glm::vec3 pos = glm::vec3(0.0f,0.0f,0.0f), float rot = 0, int primitiveType = GL_TRIANGLES, int verticeCount = 36);
 
 	void update() override;
 	void draw() override;
@@ -66,18 +66,40 @@ public:
 };
 
 
-class Player : public GameObject
+
+class Weapon : public GameObject
+{
+	public: 
+		Weapon();
+		void draw() override;
+		void update() override;
+
+
+};
+
+
+
+class Player
 {
 private:
 	glm::mat4 projection, view, model;
-	
-	
+	//std::vector<std::unique_ptr<GameObject>> weapons;
+	int weaponSelection;
+	struct weapons
+	{
+		// Pistol object
+
+		// Shotgun object
+	};
 
 public:
 	Camera camera;
 	float scr_width, scr_height;
 	Player(glm::vec3 pos, float rot, unsigned int scr_width = 800, unsigned int scr_height = 600);
-	void update() override;
-	void draw() override;
+	void processInput(GLFWwindow *window);
+	void update(GLFWwindow *window);
+	void draw();
 
 };
+
+

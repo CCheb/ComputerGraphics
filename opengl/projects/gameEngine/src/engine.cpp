@@ -202,18 +202,39 @@ void Cube::cleanUp()
 
 // Player
 //----------------------
-Player::Player(glm::vec3 pos, float rot, unsigned int scr_width, unsigned int scr_height): GameObject(pos, rot, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE), camera(pos, rot)
+Player::Player(glm::vec3 pos, float rot, unsigned int scr_width, unsigned int scr_height): camera(pos, rot)
 {
     projection = glm::mat4(1.0f);
     view = glm::mat4(1.0f);
     model = glm::mat4(1.0f);
-
+    weaponSelection = 0;
     this->scr_width = scr_width;
     this->scr_height = scr_height;
 }
 
-void Player::update()
+
+// this should be key_callback not process. That way we call the key once
+void Player::processInput(GLFWwindow *window)
 {
+    if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+    {
+        weaponSelection = 0;
+        std::cout << weaponSelection << std::endl;
+    }
+    
+    if(glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+    {
+        weaponSelection = 1;
+        std::cout << weaponSelection << std::endl;
+    }
+
+
+
+}
+
+void Player::update(GLFWwindow *window)
+{
+    processInput(window);
     GameObject::world->use();
     projection = glm::perspective(glm::radians(camera.Zoom), (float)scr_width / (float)scr_height, 0.1f, 100.0f);
     view = camera.GetViewMatrix();
@@ -223,7 +244,10 @@ void Player::update()
 }
 
 void Player::draw()
-{}
+{
+    // Draw weapon/UI elements here
+
+}
 
 
 

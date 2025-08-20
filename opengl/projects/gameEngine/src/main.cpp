@@ -121,18 +121,14 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-        /*
+        
         // camera stuff
-        GameObject::world->use();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 model = glm::mat4(1.0f);
-        GameObject::world->setMat4("projection", projection);
-        GameObject::world->setMat4("view", view);   
-        */
+        // updating camera: setting MVP matrices
+        // idea is that we update the player camera which updates movement and direction and also the 
+        // player weapon via a weapon class
+        player.update(window);
 
-        // updating camera
-        player.update();
+        // player draw involves drawing any UI elements like weapon sprites
 
 
         // update and render loop. we make sure to update objects before we draw them
