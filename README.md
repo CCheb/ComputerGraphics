@@ -29,13 +29,14 @@ This repository serves as a **personal learning hub** for Computer Graphics prog
 - **Canvas 2D** – Simple drawing and animations.  
 - **Fundamental graphics concepts**: transformations, shading, frame buffers, and more.
 
+- **Note** these projects have been developed and tested on macOS/Linux so far.
 
 ## Installation & Build
 
 ### WebGL
 
 - No build required.  
-- Open the `.html` files in any modern browser supporting WebGL.  
+- Open the `index.html` files in any modern browser supporting WebGL.  
 - **Note:** `EscapeTheMaze` requires a basic Python server running on `localhost`.  
   ```bash
   cd webgl/EscapeTheMaze
