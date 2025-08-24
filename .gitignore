@@ -4,4 +4,6 @@
 
 build/
 
+*.json
 
+.cache/

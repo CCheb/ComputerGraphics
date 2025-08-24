@@ -73,7 +73,7 @@ class Weapon : public GameObject
 		Weapon();
 		void draw() override;
 		void update() override;
-
+		
 
 };
 
