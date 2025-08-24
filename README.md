@@ -6,10 +6,9 @@ This repository includes:
 - **WebGL Projects** – Browser-based graphics experiments and games.  
 - **OpenGL Projects** – C++ applications built with **CMake**, following [LearnOpenGL](https://learnopengl.com) tutorials.
 
----
 
 ## Project Structure
-    ```bash
+```bash
     ComputerGraphics/
     ├── 2dTransformations   # Basic 2D transformations (Rotation, Scaling, Translation)
     ├── Canvas2D            # Canvas API experiments and small games
@@ -19,7 +18,7 @@ This repository includes:
     │   ├── learnOpenGL     # Tutorials based on Joey de Vries' LearnOpenGL
     │   └── projects        # Custom OpenGL projects
     └── webgl               # WebGL projects and experiments
-    ```
+```
 
 ## 🖥 Overview
 
@@ -30,7 +29,6 @@ This repository serves as a **personal learning hub** for Computer Graphics prog
 - **Canvas 2D** – Simple drawing and animations.  
 - Fundamental graphics concepts: transformations, shading, frame buffers, and more.
 
----
 
 ## ⚙️ Installation & Build
 
