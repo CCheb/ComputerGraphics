@@ -24,12 +24,12 @@ This repository includes:
 
 This repository serves as a **personal learning hub** for Computer Graphics programming, covering:
 
-- **WebGL (JavaScript)** – Real-time graphics in the browser.  
-- **OpenGL (C++ with CMake)** – Cross-platform rendering.  
+- **WebGL (JavaScript)** – Projects/Assignments from Computer Graphics course. Real-time graphics in the browser.  
+- **OpenGL (C++ with CMake)** – Intermediate to advance graphics concepts and experimentations Cross-platform rendering.  
 - **Canvas 2D** – Simple drawing and animations.  
 - **Fundamental graphics concepts**: transformations, shading, frame buffers, and more.
 
-- **Note** these projects have been developed and tested on macOS/Linux so far.
+- **Note:** these projects have been developed and tested on macOS/Linux so far.
 
 ## Installation & Build
 
