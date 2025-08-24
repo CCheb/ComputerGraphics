@@ -1,1 +1,81 @@
-This repository is mean't to store my computer graphics related work in a place I can access in both my desktop and mac. I will continuosly add to this repo as the assignments and examples start rolling in!
+# Computer Graphics Collection
+
+A collection of projects exploring **Computer Graphics** concepts using **WebGL** and **OpenGL**.  
+This repository includes:
+
+- **WebGL Projects** – Browser-based graphics experiments and games.  
+- **OpenGL Projects** – C++ applications built with **CMake**, following [LearnOpenGL](https://learnopengl.com) tutorials.
+
+---
+
+## Project Structure
+
+ComputerGraphics/
+├── 2dTransformations   # Basic 2D transformations (Rotation, Scaling, Translation)
+├── Canvas2D            # Canvas API experiments and small games
+├── htmlTutorial        # HTML assets and experiments
+├── javaScriptTutorial  # JS basics for graphics
+├── opengl              # OpenGL projects (C++ & CMake)
+│   ├── learnOpenGL     # Tutorials based on Joey de Vries' LearnOpenGL
+│   └── projects        # Custom OpenGL projects
+└── webgl               # WebGL projects and experiments
+
+
+## 🖥 Overview
+
+This repository serves as a **personal learning hub** for Computer Graphics programming, covering:
+
+- **WebGL (JavaScript)** – Real-time graphics in the browser.  
+- **OpenGL (C++ with CMake)** – Cross-platform rendering.  
+- **Canvas 2D** – Simple drawing and animations.  
+- Fundamental graphics concepts: transformations, shading, frame buffers, and more.
+
+---
+
+## ⚙️ Installation & Build
+
+### WebGL
+
+- No build required.  
+- Open the `.html` files in any modern browser supporting WebGL.  
+- **Note:** `EscapeTheMaze` requires a basic Python server running on `localhost`.  
+  ```bash
+  cd webgl/EscapeTheMaze
+  python3 -m http.server
+
+## OpenGL
+
+**Requirements:**
+
+- **CMake** 3.10 or higher  
+- **OpenGL** 3.3 or higher  
+- **GLFW3**, **GLAD**, **GLM**, **Assimp** (included or install via your package manager)
+
+**Build Instructions:**
+
+```bash
+# Navigate to the OpenGL projects folder
+cd opengl/projects
+
+# Create a build directory and navigate into it
+mkdir build && cd build
+
+# Generate build files with CMake
+cmake ..
+
+# Compile the project
+make
+
+# Run the compiled executable
+./YourExecutable
+
+
+## References: ## 
+
+- https://learnopengl.com
+- https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API
+- https://www.opengl.org/
+- https://github.com/g-truc/glm
+- https://github.com/assimp/assimp
+
+
