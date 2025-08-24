@@ -72,7 +72,7 @@ make
 cd build/src/*chapter*/*sample*/
 
 # Finally run executable
-./executablename
+./ExecutableName
 ```
 
 **For projects**
