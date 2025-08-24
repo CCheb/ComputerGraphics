@@ -3,8 +3,8 @@
 A collection of projects exploring **Computer Graphics** concepts using **WebGL** and **OpenGL**.  
 This repository includes:
 
-- **WebGL Projects** – Browser-based graphics experiments and games.  
-- **OpenGL Projects** – C++ applications built with **CMake**, following [LearnOpenGL](https://learnopengl.com) tutorials.
+- **WebGL Projects (Spring 2025)** – Browser-based graphics experiments and games.  
+- **OpenGL Projects (Summer 2025)** – C++ applications built with **CMake**, following [LearnOpenGL](https://learnopengl.com) tutorials.
 
 
 ## Project Structure
@@ -20,17 +20,17 @@ This repository includes:
     └── webgl               # WebGL projects and experiments
 ```
 
-## 🖥 Overview
+## Overview
 
 This repository serves as a **personal learning hub** for Computer Graphics programming, covering:
 
 - **WebGL (JavaScript)** – Real-time graphics in the browser.  
 - **OpenGL (C++ with CMake)** – Cross-platform rendering.  
 - **Canvas 2D** – Simple drawing and animations.  
-- Fundamental graphics concepts: transformations, shading, frame buffers, and more.
+- **Fundamental graphics concepts**: transformations, shading, frame buffers, and more.
 
 
-## ⚙️ Installation & Build
+## Installation & Build
 
 ### WebGL
 
@@ -40,20 +40,46 @@ This repository serves as a **personal learning hub** for Computer Graphics prog
   ```bash
   cd webgl/EscapeTheMaze
   python3 -m http.server
+- You might need to refresh a couple of times so that the all the textures load in.
 
 ## OpenGL
 
 **Requirements:**
 
-- **CMake** 3.10 or higher  
+- **CMake** 3.10 or higher 
+- **g++** 17 or higher 
 - **OpenGL** 3.3 or higher  
 - **GLFW3**, **GLAD**, **GLM**, **Assimp** (included or install via your package manager)
 
 **Build Instructions:**
 
+**For learnOpenGL**
+
+```bash
+# Navigate to OpenGL learnOpenGL folder
+cd opengl/learnOpenGL
+
+# Create a build directory and navigate into it
+mkdir build && cd build
+
+# Generate build files with CMake
+cmake ..
+
+# Compile the project. This will compile all samples
+make
+
+# Navigate to desired sample within build
+cd build/src/*chapter*/*sample*/
+
+# Finally run executable
+./executablename
+```
+
+**For projects**
+
 ```bash
 # Navigate to the OpenGL projects folder
-cd opengl/projects
+cd opengl/projects/*DesiredProject*
 
 # Create a build directory and navigate into it
 mkdir build && cd build
@@ -65,7 +91,7 @@ cmake ..
 make
 
 # Run the compiled executable
-./YourExecutable
+./ExecutableName
 
 ```
 
