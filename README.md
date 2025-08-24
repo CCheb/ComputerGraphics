@@ -69,8 +69,9 @@ make
 # Run the compiled executable
 ./YourExecutable
 
+```
 
-## References: ## 
+## References:  
 
 - https://learnopengl.com
 - https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API
