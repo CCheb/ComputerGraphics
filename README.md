@@ -10,10 +10,7 @@ This repository includes:
 ## Project Structure
 ```bash
     ComputerGraphics/
-    ├── 2dTransformations   # Basic 2D transformations (Rotation, Scaling, Translation)
     ├── Canvas2D            # Canvas API experiments and small games
-    ├── htmlTutorial        # HTML assets and experiments
-    ├── javaScriptTutorial  # JS basics for graphics
     ├── opengl              # OpenGL projects (C++ & CMake)
     │   ├── learnOpenGL     # Tutorials based on Joey de Vries' LearnOpenGL
     │   └── projects        # Custom OpenGL projects
