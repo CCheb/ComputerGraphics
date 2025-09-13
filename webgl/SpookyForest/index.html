@@ -373,6 +373,8 @@
 
 		}
 		</script>
+
+		<script src="globals.js"></script>
 		
 		<script>
 			class WebGL_Interface
@@ -510,7 +512,7 @@
 
 			class GameObject
 			{
-				constructor(tCount, pType) 
+				constructor(tCount, pType, speed=1.0, angSpeed=1.0) 
 				{
 					this.loc = [0,0,0];
 					this.rot = [0,0,0];
@@ -519,7 +521,9 @@
 					this.cRadY = 1.0;
 					this.cRadZ = 1.0;
 					this.velocity = [0,0,0];
+					this.speed = speed;
 					this.angVelocity = [0,0,0];
+					this.angSpeed = angSpeed;
 					this.name = "default";
 					this.id = 0;
 					this.prefab;
@@ -535,8 +539,8 @@
 					for(var i =0; i < 3;i ++)
 					{
 						tempP[i] = this.loc[i];
-						tempP[i] += this.velocity[i];
-						this.rot[i] += this.angVelocity[i];
+						tempP[i] += this.velocity[i] * this.speed * window.dt;
+						this.rot[i] += this.angVelocity[i] * this.angSpeed * window.dt;
 					}
 					// If any of the rotation values reach 360 degrees (6.28319~), reset back to 0 degrees
 					if(!this.isTrigger)
@@ -1446,7 +1450,7 @@
 			{
 				constructor()
 				{
-					super(0, gl.TRIANGLES);
+					super(0, gl.TRIANGLES, 120.0, 120.0);
 					this.name = "Camera";
 					this.loc = [0,0,0];
 					this.rot = [0,0,0];
@@ -1546,7 +1550,7 @@
 			{
 				constructor()
 				{
-					super(24, gl.TRIANGLES);
+					super(24, gl.TRIANGLES, 150.0, 150.0);
 					this.name = "Enemy";
 					this.isTrigger = true;
 					this.buffer = gl.createBuffer();
@@ -1644,7 +1648,7 @@
 			{
 				constructor()
 				{
-					super(0,gl.TRIANGLES);
+					super(0,gl.TRIANGLES, 150.0,150.0);
 					this.name = "Hitbox";
 					this.isTrigger = true;
 					this.loc = [0,0,0];
@@ -1947,6 +1951,11 @@
 			
 			static MainLoop()
 			{
+				// Calculating delta time for frame independent movement
+				let now = performance.now();
+				window.dt = (now - window.lastTime) / 1000;
+				window.lastTime = now;
+
 				m.UpdateAll();
 				m.RenderAll();
 				requestAnimationFrame(main.MainLoop);
@@ -1970,7 +1979,9 @@
 			Your browser does not support canvas.
 		</CANVAS>
 		
-		
+		<p>Controls:</p>
+		<p>Move: WASD</p>
+		<p style="color:red">Note: The Forest is random everytime the page is refreshed!</p>
 		
 		<SCRIPT>
 			var canvas = document.getElementById("myCanvas");

@@ -170,6 +170,7 @@
 		}
 		</script>
 		
+		<script src="globals.js"></script>
 		<script src="./webgl_interface.js"></script>		
 		<script src="BasicGameObject.js"></script>
 		<script>
@@ -375,6 +376,11 @@
 			
 			static MainLoop()
 			{
+				// Calculating delta time for frame independent movement
+				let now = performance.now();
+				window.dt = (now - window.lastTime) / 1000;
+				window.lastTime = now;
+
 				m.UpdateAll();
 				m.RenderAll();
 				requestAnimationFrame(main.MainLoop);
@@ -396,6 +402,9 @@
 		<CANVAS id="myCanvas" width="1470" height="780" style = "border: 1px solid #000;">
 			Your browser does not support canvas.
 		</CANVAS>
+
+		<p><b>Controls:</b> | Move: WASD | Fly: N(Up),M(Down) | Shoot: Space</p>
+		<p style="color:red">Shoot the asteroids to destroy them!</p>
 		
 		<SCRIPT>
 			var canvas = document.getElementById("myCanvas");

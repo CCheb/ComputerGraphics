@@ -88,6 +88,8 @@
 
         </script>
 
+		<script src="globals.js"></script>
+
         <script>
 			// WebGL program setup
 			class WebGL_Interface
@@ -294,13 +296,19 @@
 			// Our render loop
             function loop()
 		    {
+				
+				// Calculating delta time
+				let now = performance.now();
+				window.dt = (now - window.lastTime) / 1000;
+				window.lastTime = now;
 			    // Clear -> Update -> Render
 			    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 				//m.myCubes[0].rot[0] -= 0.005;
-				m.myCubes[0].rot[0] += m.rotAmountX;
+				// Constant is the angular speed
+				m.myCubes[0].rot[0] += m.rotAmountX * 120.0 * window.dt;
                 //m.myCubes[0].rot[1] -= 0.005;
-				m.myCubes[0].rot[1] += m.rotAmountY;
-				m.myCubes[0].rot[2] += m.rotAmountZ;
+				m.myCubes[0].rot[1] += m.rotAmountY * 120.0 * window.dt;
+				m.myCubes[0].rot[2] += m.rotAmountZ * 120.0 * window.dt;
 				m.myCubes[0].render(m.myWEBGL.program);
             
 			    requestAnimationFrame(loop);	// Allows us to loop this function every certain amount of frames
@@ -385,7 +393,7 @@
         </script>
     </head>
     <body>
-        <h1 style="color: blueviolet;">Placement Lab!</h1>
+        <h1 style="color: blueviolet;">Cube!</h1>
 
 		
 		<canvas id="myCanvas" width="600" height="600" style="border: 1px solid #000;">
@@ -407,7 +415,8 @@
 		<p>Rotate Z</p>
 		<input id="rotz" type="range" min="0.000" max="0.01" step="0.001" value="0">
 
-        
+        <p style="color:red">Adjust the sliders to rotate the cube!</p>
+		<p style="color:red">Use the buttons to change the size of the cube!</p>
         
         <script>
 			// Our canvas and context variables

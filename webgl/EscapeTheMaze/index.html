@@ -318,6 +318,8 @@
 
         </script>
 
+        <script src="globals.js"></script>
+
         <script>
             class WebGL_Interface
             {
@@ -457,7 +459,7 @@
 
             class GameObject
             {
-                constructor(tCount, pType, minF, magF, ts) 
+                constructor(tCount, pType, minF, magF, ts, speed=1.0, angSpeed=1.0) 
                 {
                     this.loc = [0,0,0];
                     this.rot = [0,0,0];
@@ -466,7 +468,9 @@
                     this.cRadY = 1.0;
                     this.cRadZ = 1.0;
                     this.velocity = [0,0,0];
+                    this.speed = speed;
                     this.angVelocity = [0,0,0];
+                    this.angSpeed = angSpeed;
                     this.name = "default";
                     this.id = 0;
                     this.prefab;
@@ -491,8 +495,8 @@
                     for(var i =0; i < 3;i ++)
                     {
                         tempP[i] = this.loc[i];
-                        tempP[i] += this.velocity[i];
-                        this.rot[i] += this.angVelocity[i];
+                        tempP[i] += this.velocity[i] * this.speed * window.dt;
+                        this.rot[i] += this.angVelocity[i] * this.angSpeed * window.dt;
                     }
                     // If any of the rotation values reach 360 degrees (6.28319~), reset back to 0 degrees
                     if(!this.isTrigger)
@@ -695,7 +699,7 @@
             {
                 constructor()
                 {
-                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE,100.0,100.0);
                     this.name = "Bullet";
                     this.isTrigger = true;
                     //this.isFaceCam = true;
@@ -801,7 +805,7 @@
             {
                 constructor()
                 {
-                    super(0, gl.TRIANGLES);
+                    super(0, gl.TRIANGLES,gl.LINEAR_MIPMAP_NEAREST,gl.NEAREST,gl.REPEAT,120.0,120.0);
                     this.name = "Camera";
                     this.loc = [0,0,0];
                     this.rot = [0,0,0];
@@ -914,7 +918,7 @@
             {
                 constructor()
                 {
-                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE,150.0,150.0);
                     this.name = "Enemy1";
                     this.isTrigger = true;
                     this.isFaceCam = true;
@@ -1008,7 +1012,7 @@
             {
                 constructor()
                 {
-                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE,160.0,160.0);
                     this.name = "Enemy2";
                     this.isTrigger = true;
                     this.isFaceCam = true;
@@ -1118,7 +1122,7 @@
             {
                 constructor()
                 {
-                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE);
+                    super(4,gl.TRIANGLE_STRIP,gl.NEAREST,gl.NEAREST,gl.CLAMP_TO_EDGE,120.0,120.0);
                     this.name = "Enemy2";
                     this.isTrigger = true;
                     this.isFaceCam = true;
@@ -1802,6 +1806,11 @@
                 
                 static MainLoop()
                 {
+                    // Calculating delta time for frame independent movement
+				    let now = performance.now();
+				    window.dt = (now - window.lastTime) / 1000;
+				    window.lastTime = now;
+
                     m.UpdateAll();
                     m.RenderAll();
                     requestAnimationFrame(main.MainLoop);
@@ -1818,6 +1827,10 @@
         <canvas id="myCanvas" width="1470" height="780" style = "border: 1px solid #000;">
 			Your browser does not support canvas.
 		</canvas>
+
+        <p><b>Controls:</b> | Move: WASD | Shoot: Space</p>
+        <p style="color:red">Shoot the monsters to destroy them!</p>
+        <p style="color:red">You might need to refresh the page to load all the textures</p>
 		
 		<script>
 			var canvas = document.getElementById("myCanvas");

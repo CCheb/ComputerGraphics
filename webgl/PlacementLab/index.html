@@ -208,8 +208,13 @@
 					// since velocity specifies direction as well
 					// Some gems will move very slowly while others will move slightly faster
 					// this is due to choosing a random value between -1 and 1 for the dir
-					this.loc[0] += (this.dir[0] * 0.009);
-					this.loc[1] += (this.dir[1] * 0.009);
+					// Multiply by delta time for frame independent movement
+					if(this.dir[0]!= 0)
+					{
+						this.loc[0] += (this.dir[0] * 0.009) * 120 * window.dt;
+						this.loc[1] += (this.dir[1] * 0.009) * 120 * window.dt;
+
+					}
 
 					// Telling webGL which buffer 
 					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
@@ -257,18 +262,24 @@
 			// Our render loop
             function loop()
 		    {
+				// Calculating delta time
+				let now = performance.now();
+				window.dt = (now - window.lastTime) / 1000;
+				window.lastTime = now;
+
 			    // Clear -> Update -> Render
 			    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
                 
 				// Start by rotating the three fixed objects in different axies
-				m.myGems[0].rot[1]-= .008;	// Top rotates y
-				m.myGems[1].rot[0]-= .008;	// Bottom left rotates x
-				m.myGems[2].rot[2]-= .008;	// Bottom right rotates z
+				m.myGems[0].rot[1]-= .03;	// Top rotates y
+				m.myGems[1].rot[0]-= .03;	// Bottom left rotates x
+				m.myGems[2].rot[2]-= .03;	// Bottom right rotates z
 
 				// Make sure to render them both the three static objects and any gems
 				// spawned from left clicks
 				for(let i = 0; i < m.myGems.length; i++)
 					m.myGems[i].render(m.myWEBGL.program);
+
             
 			    requestAnimationFrame(loop);	// Allows us to loop this function every certain amount of frames
 		    }   
@@ -317,6 +328,8 @@
         <canvas id="myCanvas" width="600" height="600" style="border: 1px solid #000;">
             No canvas for you buddy
         </canvas>
+
+		<p>Controls: Click on the screen rapidly!</p>
         
         <script>
 			// Our canvas and context variables

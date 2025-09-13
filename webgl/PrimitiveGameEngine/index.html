@@ -94,6 +94,8 @@
 
 		<!--webGL program set-up-->
 		<script>
+
+
 			class WebGL_Interface
 			{
 				constructor()
@@ -222,7 +224,7 @@
 			{
 				// GameObject acts as an abstract class for every object in our game
 				// so it contains general information that EVERY object will have
-				constructor(count) 
+				constructor(count, speed=1.0, angSpeed=1.0) 
 				{
 					this.loc = [0,0,0];
 					this.rot = [0,0,0];
@@ -230,6 +232,8 @@
 					this.cRadX = 0.1; 
 					this.cRadY = 0.1;
 					this.velocity = [0,0,0];
+					this.speed = speed;
+					this.angSpeed = angSpeed;
 					this.angVelocity = [0,0,0];
 					this.name = "Default";
 					this.id = 0;
@@ -239,7 +243,7 @@
 				}
 			
 				// Any object that calls Move() will 'listen' for collisions
-				Move(){
+				Move(dt){
 					// tempP acts as the ghost/future self of the object thats
 					// moving or rotating. We dont want to immediately apply the new
 					// rotation and movement to the real object just yet. This so that we
@@ -251,11 +255,12 @@
 					var tempP = [0,0,0];
 					// Changed from 4 to 3 since it will go out of bounds
 					for (var i = 0; i < 3; i++){
+						
 						tempP[i] = this.loc[i];
-						tempP[i] += this.velocity[i];	// This is where loc and velocity meet! 
+						tempP[i] += this.velocity[i] * this.speed * dt;	// This is where loc and velocity meet! 
 						// Yes rot has values other than 0 and the vertex shader stores that value in rotate
 						// its not until angVelocity adds something other than 0 to rot that the object will rotate!
-						this.rot[i] += this.angVelocity[i];		// This is where rot and angVelocity meet!
+						this.rot[i] += this.angVelocity[i] * this.angSpeed * dt;		// This is where rot and angVelocity meet!
 					}
 					// If its not a trigger object (Its a solid)
 					if(!this.isTrigger){
@@ -400,7 +405,7 @@
 				constructor()
 				{
 					// Need to specify the verticie count through the constructor (this could be changed)
-					super(6);
+					super(6, 200.0);
 					this.name = "Bullet";
 					// Bullet is a trigger object
 					this.isTrigger = true;
@@ -427,7 +432,7 @@
 					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
 				}
 			
-				Update()
+				Update(dt)
 				{
 					// Update each of the velocity values of the bullet
 					// by muliplying the right vector by a scalar. The vector
@@ -438,7 +443,7 @@
 						this.velocity[i] = this.dir[i] * 0.02;	
 					}
 					// Now update bullets movement and check for collisions
-					this.Move();
+					this.Move(dt);
 				}
 			
 				OnTriggerEnter(other)
@@ -473,7 +478,7 @@
 			{
 				constructor()
 				{
-					super(6);
+					super(6, 120.0, 100.0);
 					this.name = "Player";
 					this.buffer=gl.createBuffer();
 					// Creating our buffer for the shape. Know that all unique instances will
@@ -499,7 +504,7 @@
 				
 				}
 
-				Update()
+				Update(dt)
 				{
 					// A and D specify the ammount of rotation. The idea is that
 					// pressing any of these keys will rotate the object 
@@ -592,7 +597,7 @@
 
 				
 					// Finally update the player movement accordingly
-					this.Move();
+					this.Move(dt);
 
 
 				}
@@ -628,7 +633,7 @@
 					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
 				}
 			
-				Update()
+				Update(dt)
 				{
 					// wall doesnt need to update anything! There are various approaches in how the
 					// object should update themselfs. Figured that since wall doenst really move that
@@ -647,7 +652,7 @@
 			{
 				constructor()
 				{
-					super(24);
+					super(24, 1.0, 150.0);
 					this.name = "Coin";
 					this.isTrigger = true;
 					this.buffer = gl.createBuffer();
@@ -697,12 +702,12 @@
 
 				}
 			
-				Update()
+				Update(dt)
 				{
 					// rotate in the y axis constantly and call move to reflect changes
 					// The rotation could have been done without the need for Move()
 					this.angVelocity = [0,0.008,0];
-					this.Move();
+					this.Move(dt);
 				}
 			
 				OnTriggerEnter(other){
@@ -730,7 +735,7 @@
 			{
 				constructor()
 				{
-					super(6);
+					super(6, 150.0);
 					this.name = "Enemy"; 
 					//this.hVert;
 					this.buffer = gl.createBuffer();
@@ -753,11 +758,11 @@
 					this.sign = 0;		// Sign helps in determining in which direction to go when colliding with a wall
 				}
 			
-				Update()
+				Update(dt)
 				{
 					// Simply update the enemy movement. Collision wont happen immediately so we want to
 					// still update the enemy movement anyways
-					this.Move();
+					this.Move(dt);
 				}
 			
 				OnCollisionEnter(other)
@@ -794,6 +799,8 @@
 		</script>
 
 		<script>
+
+		let lastTime = performance.now();
 		class main
 		{	
 			constructor()
@@ -845,17 +852,17 @@
 				
 			}
 			
-			UpdateAll()
+			UpdateAll(dt)
 			{
 				// Loop through each dictionary and call each object's Update function
 				for(var i in this.Visual){
 					this.Visuial[i].Update();
 				}
 				for(var i in this.Solid){
-					this.Solid[i].Update();
+					this.Solid[i].Update(dt);
 				}
 				for(var i in this.Trigger){
-					this.Trigger[i].Update();
+					this.Trigger[i].Update(dt);
 				}
 			
 			}
@@ -1077,9 +1084,11 @@
 
 			static MainLoop()
 			{
-				
+				let now = performance.now();
+				let dt = (now - lastTime) / 1000;
+				lastTime = now;
 				// Our main render loop. It contains all of the Game logic from the slides
-				m.UpdateAll();
+				m.UpdateAll(dt);
 				m.RenderAll();
 
 				
@@ -1103,11 +1112,14 @@
 		
 		<h1 style="color: blueviolet;">Primitive Game Engine!</h1>
 
+		
 
 		<CANVAS id="myCanvas" width="660" height="660" style = "border: 1px solid #000;">
 			Your browser does not support canvas.
 		</CANVAS>
-		
+
+		<p><b>Controls:</b> | Move: WASD | Shoot: Space</p>
+	
 		<p id="Enemy Count">Enemy Count: </p>
 		<p id="Score">Score: </p>
 		

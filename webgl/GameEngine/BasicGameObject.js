@@ -54,7 +54,7 @@ class Transform
 
 class GameObject
 {
-	constructor(tCount) 
+	constructor(tCount, speed=1.0, angSpeed=1.0) 
 	{
 		this.loc = [0,0,0];
 		this.rot = [0,0,0];
@@ -63,7 +63,9 @@ class GameObject
 		this.cRadY = 1.0;
 		this.cRadZ = 1.0;
 		this.velocity = [0,0,0];
+		this.speed = speed;
 		this.angVelocity = [0,0,0];
+		this.angSpeed = angSpeed;
 		this.name = "default";
 		this.id = 0;
 		this.prefab;
@@ -75,10 +77,10 @@ class GameObject
 	{
 		var tempP = [0,0,0];
 		for(var i =0; i< 3;i ++)
-		{
-			tempP[i] = this.loc[i];
-			tempP[i] += this.velocity[i];
-			this.rot[i] += this.angVelocity[i];
+		{ 
+			tempP[i] = this.loc[i] ;
+			tempP[i] += this.velocity[i] * this.speed * window.dt;
+			this.rot[i] += this.angVelocity[i] * this.angSpeed * window.dt;
 		}
 		// If any of the rotation values reach 360 degrees (6.28319~), reset back to 0 degrees
 		
@@ -202,7 +204,7 @@ class Gem extends GameObject
  {
 	 constructor()
 	 {
-		super(24);
+		super(24, 1.0, 140.0);
 		this.name = "Gem";
 		this.hits = 0;
 		this.buffer=gl.createBuffer();
@@ -257,7 +259,7 @@ class Gem extends GameObject
         // random number between 0.01 and 0.5 and placing it in a random axis
         this.angVelocity[Math.floor(Math.random()*3)] = Math.random() * (0.01 - 0.009) + 0.009;
         for(let i = 0; i < 3; i++)
-            this.rot[i] += this.angVelocity[i];
+            this.rot[i] += this.angVelocity[i] * this.angSpeed * window.dt;
 
 		this.transform.doRotations(this.rot);
 
@@ -282,7 +284,7 @@ class Bullet extends GameObject
 	constructor()
 	{
 		// Need to specify the verticie count through the constructor (this could be changed)
-		super(24);
+		super(24, 200.0);
 		this.name = "Bullet";
 		// Bullet is a trigger object
 		this.isTrigger = true;
@@ -378,7 +380,7 @@ class Camera extends GameObject
 {
 	constructor()
 	{
-		super(0);
+		super(0, 120.0, 120.0);
 		this.name = "Camera";
 		//this.isTrigger = true;
 		// No need to model the camera itself only the object that we will see
