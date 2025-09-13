@@ -38,7 +38,7 @@ This repository serves as a **personal learning hub** for Computer Graphics prog
   ```bash
   cd webgl/EscapeTheMaze
   python3 -m http.server
-- Either this or visit my [portfolio] (https://CCheb.github.io)
+- Either this or visit my [portfolio](https://CCheb.github.io)
 - You might need to refresh a couple of times so that the all the textures load in.
 
 ## OpenGL
