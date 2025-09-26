@@ -68,7 +68,7 @@ cmake ..
 make
 
 # Navigate to desired sample within build
-cd build/src/*chapter*/*sample*/
+cd ./src/*chapter*/*sample*/
 
 # Finally run executable
 ./ExecutableName
