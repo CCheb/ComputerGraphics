@@ -71,7 +71,7 @@ make
 cd ./src/*chapter*/*sample*/
 
 # Finally run executable
-./ExecutableName
+./*ExecutableName*
 ```
 
 **For projects**
